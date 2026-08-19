@@ -1,0 +1,5999 @@
+{
+	"openapi": "3.1.1",
+	"info": {
+		"title": "opa public API",
+		"version": "1.0.0",
+		"description": "Public HTTP API over the same use cases the opa dashboard's server actions call. See https://opa.sh/docs/api for authentication, the response envelope, pagination, and rate limiting — this document covers request/response shapes only."
+	},
+	"servers": [
+		{
+			"url": "https://api.opa.sh/v1"
+		}
+	],
+	"security": [
+		{
+			"apiKey": []
+		}
+	],
+	"components": {
+		"securitySchemes": {
+			"apiKey": {
+				"type": "apiKey",
+				"in": "header",
+				"name": "x-api-key",
+				"description": "Every request carries an API key in the `x-api-key` header. Keys are created and scoped from the dashboard (Settings → API)."
+			}
+		}
+	},
+	"paths": {
+		"/links": {
+			"get": {
+				"summary": "List links",
+				"description": "Paginated list of the organization's links, in the same summary shape the dashboard's links table uses. `archived` (default `false`) mirrors the dashboard's tab: non-archived by default, or `true` for the archived list. An archived link still resolves — see `POST /links/{id}/restore`.",
+				"operationId": "get_links",
+				"x-required-permissions": ["links:read"],
+				"x-required-plan-capability": "apiRead",
+				"x-required-plan": "start",
+				"parameters": [
+					{
+						"name": "limit",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"description": "Items per page. 1-100, default 20.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 100
+						}
+					},
+					{
+						"name": "after",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"description": "Cursor. The `id` of the last link on the previous page — returns links older than it. Mutually exclusive with `before`.",
+							"type": "string",
+							"minLength": 1
+						}
+					},
+					{
+						"name": "before",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"description": "Cursor. The `id` of the first link on the next page — returns links newer than it. Mutually exclusive with `after`.",
+							"type": "string",
+							"minLength": 1
+						}
+					},
+					{
+						"name": "search",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"description": "Case-insensitive substring match against the short link, destination URL, folder name, or tag name.",
+							"type": "string",
+							"maxLength": 255
+						}
+					},
+					{
+						"name": "archived",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"default": false,
+							"description": "`false` (default) lists active links; `true` lists archived ones.",
+							"type": "boolean"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A page of links plus pagination metadata.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"items": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"id": {
+																"type": "string"
+															},
+															"domain": {
+																"type": "string"
+															},
+															"key": {
+																"type": "string"
+															},
+															"shortLink": {
+																"type": "string"
+															},
+															"destinationUrl": {
+																"type": "string"
+															},
+															"title": {
+																"anyOf": [
+																	{
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"description": {
+																"anyOf": [
+																	{
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"imageUrl": {
+																"anyOf": [
+																	{
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"comments": {
+																"anyOf": [
+																	{
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"createdAt": {
+																"type": "string"
+															},
+															"expiresAt": {
+																"anyOf": [
+																	{
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"disabledAt": {
+																"anyOf": [
+																	{
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"testCompletedAt": {
+																"anyOf": [
+																	{
+																		"type": "string"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"testVariantsCount": {
+																"type": "number"
+															},
+															"qrSettings": {
+																"anyOf": [
+																	{
+																		"type": "object",
+																		"properties": {
+																			"foregroundColor": {
+																				"type": "string",
+																				"minLength": 1,
+																				"maxLength": 32
+																			},
+																			"backgroundColor": {
+																				"type": "string",
+																				"minLength": 1,
+																				"maxLength": 32
+																			},
+																			"errorCorrectionLevel": {
+																				"type": "string",
+																				"enum": ["L", "M", "Q", "H"]
+																			},
+																			"logoMode": {
+																				"type": "string",
+																				"enum": ["default", "none", "custom"]
+																			},
+																			"customLogoUrl": {
+																				"type": "string",
+																				"maxLength": 2048
+																			},
+																			"logoSize": {
+																				"type": "integer",
+																				"minimum": 24,
+																				"maximum": 426
+																			},
+																			"dotStyle": {
+																				"type": "string",
+																				"enum": ["square", "dots", "classy"]
+																			},
+																			"markerBorderStyle": {
+																				"type": "string",
+																				"enum": [
+																					"square",
+																					"extra-rounded",
+																					"dot"
+																				]
+																			},
+																			"markerCenterStyle": {
+																				"type": "string",
+																				"enum": ["square", "dot"]
+																			}
+																		},
+																		"additionalProperties": false
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"folder": {
+																"anyOf": [
+																	{
+																		"type": "object",
+																		"properties": {
+																			"id": {
+																				"type": "string"
+																			},
+																			"name": {
+																				"type": "string"
+																			}
+																		},
+																		"required": ["id", "name"],
+																		"additionalProperties": false
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"tags": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"id": {
+																			"type": "string"
+																		},
+																		"name": {
+																			"type": "string"
+																		},
+																		"color": {
+																			"type": "string"
+																		}
+																	},
+																	"required": ["id", "name", "color"],
+																	"additionalProperties": false
+																}
+															}
+														},
+														"required": [
+															"id",
+															"domain",
+															"key",
+															"shortLink",
+															"destinationUrl",
+															"title",
+															"description",
+															"imageUrl",
+															"comments",
+															"createdAt",
+															"expiresAt",
+															"disabledAt",
+															"testCompletedAt",
+															"testVariantsCount",
+															"qrSettings",
+															"folder",
+															"tags"
+														],
+														"additionalProperties": false
+													}
+												},
+												"pagination": {
+													"type": "object",
+													"properties": {
+														"hasMore": {
+															"type": "boolean"
+														},
+														"next": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"before": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													},
+													"required": ["hasMore", "next", "before"],
+													"additionalProperties": false
+												}
+											},
+											"required": ["items", "pagination"],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_read_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"summary": "Create a link",
+				"description": "Creates a link with the same contract as the dashboard's create form. Only `destinationUrl`/`domain` are meaningfully required — every other field has a default. Responds with the detail shape (same as `GET /links/{id}`).",
+				"operationId": "post_links",
+				"x-required-permissions": ["links:write"],
+				"x-required-plan-capability": "apiFull",
+				"x-required-plan": "pro",
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$schema": "https://json-schema.org/draft/2020-12/schema",
+								"type": "object",
+								"properties": {
+									"destinationUrl": {
+										"type": "string",
+										"format": "uri"
+									},
+									"domain": {
+										"type": "string",
+										"minLength": 1
+									},
+									"key": {
+										"default": "",
+										"type": "string",
+										"maxLength": 64
+									},
+									"folderId": {
+										"default": "",
+										"type": "string",
+										"minLength": 1
+									},
+									"tagIds": {
+										"default": [],
+										"type": "array",
+										"items": {
+											"type": "string",
+											"minLength": 1
+										}
+									},
+									"utmTemplateId": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmSource": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmMedium": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmCampaign": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmTerm": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmContent": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmReferral": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"comments": {
+										"default": "",
+										"type": "string",
+										"maxLength": 1000
+									},
+									"title": {
+										"default": "",
+										"type": "string",
+										"maxLength": 120
+									},
+									"description": {
+										"default": "",
+										"type": "string",
+										"maxLength": 240
+									},
+									"imageUrl": {
+										"default": "",
+										"type": "string",
+										"maxLength": 2048
+									},
+									"expiresAt": {
+										"default": "",
+										"type": "string"
+									},
+									"expiredUrl": {
+										"default": "",
+										"type": "string",
+										"maxLength": 2048
+									},
+									"doIndex": {
+										"default": false,
+										"type": "boolean"
+									},
+									"password": {
+										"default": "",
+										"type": "string",
+										"maxLength": 72
+									},
+									"testVariants": {
+										"default": "",
+										"type": "string"
+									},
+									"testCompletedAt": {
+										"default": "",
+										"type": "string"
+									},
+									"targeting": {
+										"default": "",
+										"type": "string"
+									},
+									"qrSettings": {
+										"default": "",
+										"type": "string"
+									}
+								},
+								"required": ["destinationUrl", "domain"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "The newly created link, in the detail shape.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string"
+												},
+												"domain": {
+													"type": "string"
+												},
+												"key": {
+													"type": "string"
+												},
+												"shortLink": {
+													"type": "string"
+												},
+												"destinationUrl": {
+													"type": "string"
+												},
+												"title": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"description": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"imageUrl": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"comments": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"folderId": {
+													"type": "string"
+												},
+												"tagIds": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												},
+												"utmTemplateId": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmSource": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmMedium": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmCampaign": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmTerm": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmContent": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmReferral": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"expiresAt": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"expiredUrl": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"doIndex": {
+													"type": "boolean"
+												},
+												"hasPassword": {
+													"type": "boolean"
+												},
+												"testVariantsCount": {
+													"type": "number"
+												},
+												"testCompletedAt": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"targeting": {
+													"anyOf": [
+														{
+															"type": "object",
+															"properties": {
+																"ios": {
+																	"type": "string",
+																	"format": "uri"
+																},
+																"android": {
+																	"type": "string",
+																	"format": "uri"
+																},
+																"geo": {
+																	"type": "object",
+																	"propertyNames": {
+																		"type": "string"
+																	},
+																	"additionalProperties": {
+																		"type": "string",
+																		"format": "uri"
+																	}
+																}
+															},
+															"additionalProperties": false
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"qrSettings": {
+													"anyOf": [
+														{
+															"type": "object",
+															"properties": {
+																"foregroundColor": {
+																	"type": "string",
+																	"minLength": 1,
+																	"maxLength": 32
+																},
+																"backgroundColor": {
+																	"type": "string",
+																	"minLength": 1,
+																	"maxLength": 32
+																},
+																"errorCorrectionLevel": {
+																	"type": "string",
+																	"enum": ["L", "M", "Q", "H"]
+																},
+																"logoMode": {
+																	"type": "string",
+																	"enum": ["default", "none", "custom"]
+																},
+																"customLogoUrl": {
+																	"type": "string",
+																	"maxLength": 2048
+																},
+																"logoSize": {
+																	"type": "integer",
+																	"minimum": 24,
+																	"maximum": 426
+																},
+																"dotStyle": {
+																	"type": "string",
+																	"enum": ["square", "dots", "classy"]
+																},
+																"markerBorderStyle": {
+																	"type": "string",
+																	"enum": ["square", "extra-rounded", "dot"]
+																},
+																"markerCenterStyle": {
+																	"type": "string",
+																	"enum": ["square", "dot"]
+																}
+															},
+															"additionalProperties": false
+														},
+														{
+															"type": "null"
+														}
+													]
+												}
+											},
+											"required": [
+												"id",
+												"domain",
+												"key",
+												"shortLink",
+												"destinationUrl",
+												"title",
+												"description",
+												"imageUrl",
+												"comments",
+												"folderId",
+												"tagIds",
+												"utmTemplateId",
+												"utmSource",
+												"utmMedium",
+												"utmCampaign",
+												"utmTerm",
+												"utmContent",
+												"utmReferral",
+												"expiresAt",
+												"expiredUrl",
+												"doIndex",
+												"hasPassword",
+												"testVariantsCount",
+												"testCompletedAt",
+												"targeting",
+												"qrSettings"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_full_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/links/{id}": {
+			"get": {
+				"summary": "Get a link",
+				"description": "Fetches a single link in the detail shape.",
+				"operationId": "get_links__id_",
+				"x-required-permissions": ["links:read"],
+				"x-required-plan-capability": "apiRead",
+				"x-required-plan": "start",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The link, in the detail shape.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string"
+												},
+												"domain": {
+													"type": "string"
+												},
+												"key": {
+													"type": "string"
+												},
+												"shortLink": {
+													"type": "string"
+												},
+												"destinationUrl": {
+													"type": "string"
+												},
+												"title": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"description": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"imageUrl": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"comments": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"folderId": {
+													"type": "string"
+												},
+												"tagIds": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												},
+												"utmTemplateId": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmSource": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmMedium": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmCampaign": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmTerm": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmContent": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmReferral": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"expiresAt": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"expiredUrl": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"doIndex": {
+													"type": "boolean"
+												},
+												"hasPassword": {
+													"type": "boolean"
+												},
+												"testVariantsCount": {
+													"type": "number"
+												},
+												"testCompletedAt": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"targeting": {
+													"anyOf": [
+														{
+															"type": "object",
+															"properties": {
+																"ios": {
+																	"type": "string",
+																	"format": "uri"
+																},
+																"android": {
+																	"type": "string",
+																	"format": "uri"
+																},
+																"geo": {
+																	"type": "object",
+																	"propertyNames": {
+																		"type": "string"
+																	},
+																	"additionalProperties": {
+																		"type": "string",
+																		"format": "uri"
+																	}
+																}
+															},
+															"additionalProperties": false
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"qrSettings": {
+													"anyOf": [
+														{
+															"type": "object",
+															"properties": {
+																"foregroundColor": {
+																	"type": "string",
+																	"minLength": 1,
+																	"maxLength": 32
+																},
+																"backgroundColor": {
+																	"type": "string",
+																	"minLength": 1,
+																	"maxLength": 32
+																},
+																"errorCorrectionLevel": {
+																	"type": "string",
+																	"enum": ["L", "M", "Q", "H"]
+																},
+																"logoMode": {
+																	"type": "string",
+																	"enum": ["default", "none", "custom"]
+																},
+																"customLogoUrl": {
+																	"type": "string",
+																	"maxLength": 2048
+																},
+																"logoSize": {
+																	"type": "integer",
+																	"minimum": 24,
+																	"maximum": 426
+																},
+																"dotStyle": {
+																	"type": "string",
+																	"enum": ["square", "dots", "classy"]
+																},
+																"markerBorderStyle": {
+																	"type": "string",
+																	"enum": ["square", "extra-rounded", "dot"]
+																},
+																"markerCenterStyle": {
+																	"type": "string",
+																	"enum": ["square", "dot"]
+																}
+															},
+															"additionalProperties": false
+														},
+														{
+															"type": "null"
+														}
+													]
+												}
+											},
+											"required": [
+												"id",
+												"domain",
+												"key",
+												"shortLink",
+												"destinationUrl",
+												"title",
+												"description",
+												"imageUrl",
+												"comments",
+												"folderId",
+												"tagIds",
+												"utmTemplateId",
+												"utmSource",
+												"utmMedium",
+												"utmCampaign",
+												"utmTerm",
+												"utmContent",
+												"utmReferral",
+												"expiresAt",
+												"expiredUrl",
+												"doIndex",
+												"hasPassword",
+												"testVariantsCount",
+												"testCompletedAt",
+												"targeting",
+												"qrSettings"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_read_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			},
+			"patch": {
+				"summary": "Update a link",
+				"description": "Full-payload update — same schema as create, minus `linkId` (supplied by the path). Responds with the detail shape.",
+				"operationId": "patch_links__id_",
+				"x-required-permissions": ["links:write"],
+				"x-required-plan-capability": "apiFull",
+				"x-required-plan": "pro",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$schema": "https://json-schema.org/draft/2020-12/schema",
+								"type": "object",
+								"properties": {
+									"destinationUrl": {
+										"type": "string",
+										"format": "uri"
+									},
+									"domain": {
+										"type": "string",
+										"minLength": 1
+									},
+									"folderId": {
+										"default": "",
+										"type": "string",
+										"minLength": 1
+									},
+									"tagIds": {
+										"default": [],
+										"type": "array",
+										"items": {
+											"type": "string",
+											"minLength": 1
+										}
+									},
+									"utmTemplateId": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmSource": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmMedium": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmCampaign": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmTerm": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmContent": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"utmReferral": {
+										"default": "",
+										"type": "string",
+										"maxLength": 255
+									},
+									"comments": {
+										"default": "",
+										"type": "string",
+										"maxLength": 1000
+									},
+									"title": {
+										"default": "",
+										"type": "string",
+										"maxLength": 120
+									},
+									"description": {
+										"default": "",
+										"type": "string",
+										"maxLength": 240
+									},
+									"imageUrl": {
+										"default": "",
+										"type": "string",
+										"maxLength": 2048
+									},
+									"expiresAt": {
+										"default": "",
+										"type": "string"
+									},
+									"expiredUrl": {
+										"default": "",
+										"type": "string",
+										"maxLength": 2048
+									},
+									"doIndex": {
+										"default": false,
+										"type": "boolean"
+									},
+									"password": {
+										"default": "",
+										"type": "string",
+										"maxLength": 72
+									},
+									"clearPassword": {
+										"default": false,
+										"type": "boolean"
+									},
+									"testVariants": {
+										"default": "",
+										"type": "string"
+									},
+									"testCompletedAt": {
+										"default": "",
+										"type": "string"
+									},
+									"targeting": {
+										"default": "",
+										"type": "string"
+									},
+									"qrSettings": {
+										"default": "",
+										"type": "string"
+									}
+								},
+								"required": ["destinationUrl", "domain"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "The updated link, in the detail shape.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string"
+												},
+												"domain": {
+													"type": "string"
+												},
+												"key": {
+													"type": "string"
+												},
+												"shortLink": {
+													"type": "string"
+												},
+												"destinationUrl": {
+													"type": "string"
+												},
+												"title": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"description": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"imageUrl": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"comments": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"folderId": {
+													"type": "string"
+												},
+												"tagIds": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												},
+												"utmTemplateId": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmSource": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmMedium": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmCampaign": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmTerm": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmContent": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmReferral": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"expiresAt": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"expiredUrl": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"doIndex": {
+													"type": "boolean"
+												},
+												"hasPassword": {
+													"type": "boolean"
+												},
+												"testVariantsCount": {
+													"type": "number"
+												},
+												"testCompletedAt": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"targeting": {
+													"anyOf": [
+														{
+															"type": "object",
+															"properties": {
+																"ios": {
+																	"type": "string",
+																	"format": "uri"
+																},
+																"android": {
+																	"type": "string",
+																	"format": "uri"
+																},
+																"geo": {
+																	"type": "object",
+																	"propertyNames": {
+																		"type": "string"
+																	},
+																	"additionalProperties": {
+																		"type": "string",
+																		"format": "uri"
+																	}
+																}
+															},
+															"additionalProperties": false
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"qrSettings": {
+													"anyOf": [
+														{
+															"type": "object",
+															"properties": {
+																"foregroundColor": {
+																	"type": "string",
+																	"minLength": 1,
+																	"maxLength": 32
+																},
+																"backgroundColor": {
+																	"type": "string",
+																	"minLength": 1,
+																	"maxLength": 32
+																},
+																"errorCorrectionLevel": {
+																	"type": "string",
+																	"enum": ["L", "M", "Q", "H"]
+																},
+																"logoMode": {
+																	"type": "string",
+																	"enum": ["default", "none", "custom"]
+																},
+																"customLogoUrl": {
+																	"type": "string",
+																	"maxLength": 2048
+																},
+																"logoSize": {
+																	"type": "integer",
+																	"minimum": 24,
+																	"maximum": 426
+																},
+																"dotStyle": {
+																	"type": "string",
+																	"enum": ["square", "dots", "classy"]
+																},
+																"markerBorderStyle": {
+																	"type": "string",
+																	"enum": ["square", "extra-rounded", "dot"]
+																},
+																"markerCenterStyle": {
+																	"type": "string",
+																	"enum": ["square", "dot"]
+																}
+															},
+															"additionalProperties": false
+														},
+														{
+															"type": "null"
+														}
+													]
+												}
+											},
+											"required": [
+												"id",
+												"domain",
+												"key",
+												"shortLink",
+												"destinationUrl",
+												"title",
+												"description",
+												"imageUrl",
+												"comments",
+												"folderId",
+												"tagIds",
+												"utmTemplateId",
+												"utmSource",
+												"utmMedium",
+												"utmCampaign",
+												"utmTerm",
+												"utmContent",
+												"utmReferral",
+												"expiresAt",
+												"expiredUrl",
+												"doIndex",
+												"hasPassword",
+												"testVariantsCount",
+												"testCompletedAt",
+												"targeting",
+												"qrSettings"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_full_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"summary": "Archive a link",
+				"description": "Archives the link (same as the dashboard's delete action). The row is not physically removed and the link keeps resolving normally — archiving only removes it from `GET /links`' default list. Reversible with `POST /links/{id}/restore`.",
+				"operationId": "delete_links__id_",
+				"x-required-permissions": ["links:write"],
+				"x-required-plan-capability": "apiFull",
+				"x-required-plan": "pro",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Confirmation that the link was archived.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string"
+												},
+												"archived": {
+													"type": "boolean",
+													"const": true
+												}
+											},
+											"required": ["id", "archived"],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_full_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/links/{id}/restore": {
+			"post": {
+				"summary": "Restore an archived link",
+				"description": "Un-archives the link (`archived = false`), the counterpart to `DELETE /links/{id}`. Brings it back onto `GET /links`' default list — it never stopped resolving while archived.",
+				"operationId": "post_links__id__restore",
+				"x-required-permissions": ["links:write"],
+				"x-required-plan-capability": "apiFull",
+				"x-required-plan": "pro",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Confirmation that the link was restored.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string"
+												},
+												"archived": {
+													"type": "boolean",
+													"const": false
+												}
+											},
+											"required": ["id", "archived"],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_full_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/links/{id}/duplicate": {
+			"post": {
+				"summary": "Duplicate a link",
+				"description": "Creates a copy of the link. Not copied: password, an in-flight A/B test, `disabledAt`. Responds with the detail shape of the NEW link.",
+				"operationId": "post_links__id__duplicate",
+				"x-required-permissions": ["links:write"],
+				"x-required-plan-capability": "apiFull",
+				"x-required-plan": "pro",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "The newly created duplicate, in the detail shape.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string"
+												},
+												"domain": {
+													"type": "string"
+												},
+												"key": {
+													"type": "string"
+												},
+												"shortLink": {
+													"type": "string"
+												},
+												"destinationUrl": {
+													"type": "string"
+												},
+												"title": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"description": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"imageUrl": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"comments": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"folderId": {
+													"type": "string"
+												},
+												"tagIds": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
+												},
+												"utmTemplateId": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmSource": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmMedium": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmCampaign": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmTerm": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmContent": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"utmReferral": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"expiresAt": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"expiredUrl": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"doIndex": {
+													"type": "boolean"
+												},
+												"hasPassword": {
+													"type": "boolean"
+												},
+												"testVariantsCount": {
+													"type": "number"
+												},
+												"testCompletedAt": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"targeting": {
+													"anyOf": [
+														{
+															"type": "object",
+															"properties": {
+																"ios": {
+																	"type": "string",
+																	"format": "uri"
+																},
+																"android": {
+																	"type": "string",
+																	"format": "uri"
+																},
+																"geo": {
+																	"type": "object",
+																	"propertyNames": {
+																		"type": "string"
+																	},
+																	"additionalProperties": {
+																		"type": "string",
+																		"format": "uri"
+																	}
+																}
+															},
+															"additionalProperties": false
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"qrSettings": {
+													"anyOf": [
+														{
+															"type": "object",
+															"properties": {
+																"foregroundColor": {
+																	"type": "string",
+																	"minLength": 1,
+																	"maxLength": 32
+																},
+																"backgroundColor": {
+																	"type": "string",
+																	"minLength": 1,
+																	"maxLength": 32
+																},
+																"errorCorrectionLevel": {
+																	"type": "string",
+																	"enum": ["L", "M", "Q", "H"]
+																},
+																"logoMode": {
+																	"type": "string",
+																	"enum": ["default", "none", "custom"]
+																},
+																"customLogoUrl": {
+																	"type": "string",
+																	"maxLength": 2048
+																},
+																"logoSize": {
+																	"type": "integer",
+																	"minimum": 24,
+																	"maximum": 426
+																},
+																"dotStyle": {
+																	"type": "string",
+																	"enum": ["square", "dots", "classy"]
+																},
+																"markerBorderStyle": {
+																	"type": "string",
+																	"enum": ["square", "extra-rounded", "dot"]
+																},
+																"markerCenterStyle": {
+																	"type": "string",
+																	"enum": ["square", "dot"]
+																}
+															},
+															"additionalProperties": false
+														},
+														{
+															"type": "null"
+														}
+													]
+												}
+											},
+											"required": [
+												"id",
+												"domain",
+												"key",
+												"shortLink",
+												"destinationUrl",
+												"title",
+												"description",
+												"imageUrl",
+												"comments",
+												"folderId",
+												"tagIds",
+												"utmTemplateId",
+												"utmSource",
+												"utmMedium",
+												"utmCampaign",
+												"utmTerm",
+												"utmContent",
+												"utmReferral",
+												"expiresAt",
+												"expiredUrl",
+												"doIndex",
+												"hasPassword",
+												"testVariantsCount",
+												"testCompletedAt",
+												"targeting",
+												"qrSettings"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_full_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/links/bulk-archive": {
+			"post": {
+				"summary": "Bulk archive links",
+				"description": "Archives every link in `linkIds` in one call — same effect as `DELETE /links/{id}`, batched. All-or-nothing on membership: if any id does not belong to the organization (or does not exist), the whole request fails `not_found` — there is no partial/best-effort success. Reversible with `POST /links/bulk-restore`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.",
+				"operationId": "post_links_bulk-archive",
+				"x-required-permissions": ["links:write"],
+				"x-required-plan-capability": "apiFull",
+				"x-required-plan": "pro",
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$schema": "https://json-schema.org/draft/2020-12/schema",
+								"type": "object",
+								"properties": {
+									"linkIds": {
+										"minItems": 1,
+										"type": "array",
+										"items": {
+											"type": "string",
+											"minLength": 1
+										}
+									}
+								},
+								"required": ["linkIds"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "How many links were archived.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"archivedCount": {
+													"type": "number"
+												}
+											},
+											"required": ["archivedCount"],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_full_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/links/bulk-restore": {
+			"post": {
+				"summary": "Bulk restore archived links",
+				"description": "Un-archives every link in `linkIds` in one call, the counterpart to `POST /links/bulk-archive`. Same all-or-nothing membership check: any id outside the organization fails the whole request with `not_found`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.",
+				"operationId": "post_links_bulk-restore",
+				"x-required-permissions": ["links:write"],
+				"x-required-plan-capability": "apiFull",
+				"x-required-plan": "pro",
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$schema": "https://json-schema.org/draft/2020-12/schema",
+								"type": "object",
+								"properties": {
+									"linkIds": {
+										"minItems": 1,
+										"type": "array",
+										"items": {
+											"type": "string",
+											"minLength": 1
+										}
+									}
+								},
+								"required": ["linkIds"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "How many links were restored.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"restoredCount": {
+													"type": "number"
+												}
+											},
+											"required": ["restoredCount"],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_full_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/links/bulk-move": {
+			"post": {
+				"summary": "Bulk move links to a folder",
+				"description": "Moves every link in `linkIds` into `folderId` in one call. `folderId` must belong to the organization (`folder_not_found` otherwise). Same all-or-nothing membership check on `linkIds` as `POST /links/bulk-archive`: any id outside the organization fails the whole request with `not_found`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.",
+				"operationId": "post_links_bulk-move",
+				"x-required-permissions": ["links:write"],
+				"x-required-plan-capability": "apiFull",
+				"x-required-plan": "pro",
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$schema": "https://json-schema.org/draft/2020-12/schema",
+								"type": "object",
+								"properties": {
+									"linkIds": {
+										"minItems": 1,
+										"type": "array",
+										"items": {
+											"type": "string",
+											"minLength": 1
+										}
+									},
+									"folderId": {
+										"type": "string",
+										"minLength": 1
+									}
+								},
+								"required": ["linkIds", "folderId"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "How many links were moved.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"movedCount": {
+													"type": "number"
+												}
+											},
+											"required": ["movedCount"],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_full_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/links/bulk-tag": {
+			"post": {
+				"summary": "Bulk add tags to links",
+				"description": "Adds (never replaces) every tag in `tagIds` to every link in `linkIds`. Every id in `tagIds` must belong to the organization (`tags_not_found` otherwise). Re-tagging a link that already carries one of the tags is a no-op, not an error. Same all-or-nothing membership check on `linkIds` as `POST /links/bulk-archive`: any id outside the organization fails the whole request with `not_found`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.",
+				"operationId": "post_links_bulk-tag",
+				"x-required-permissions": ["links:write"],
+				"x-required-plan-capability": "apiFull",
+				"x-required-plan": "pro",
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$schema": "https://json-schema.org/draft/2020-12/schema",
+								"type": "object",
+								"properties": {
+									"linkIds": {
+										"minItems": 1,
+										"type": "array",
+										"items": {
+											"type": "string",
+											"minLength": 1
+										}
+									},
+									"tagIds": {
+										"minItems": 1,
+										"type": "array",
+										"items": {
+											"type": "string",
+											"minLength": 1
+										}
+									}
+								},
+								"required": ["linkIds", "tagIds"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "How many links were tagged.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"taggedCount": {
+													"type": "number"
+												}
+											},
+											"required": ["taggedCount"],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_full_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/domains": {
+			"get": {
+				"summary": "List usable domains",
+				"description": "Domains this organization can use as a link's `domain`: its own custom (USER_DOMAIN) domains plus every verified shared (APP_DOMAIN) domain.",
+				"operationId": "get_domains",
+				"x-required-permissions": ["domains:read"],
+				"x-required-plan-capability": "apiRead",
+				"x-required-plan": "start",
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "The list of usable domains.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string"
+													},
+													"domain": {
+														"type": "string"
+													},
+													"type": {
+														"type": "string",
+														"enum": ["USER_DOMAIN", "APP_DOMAIN"]
+													},
+													"verified": {
+														"type": "boolean"
+													},
+													"primary": {
+														"type": "boolean"
+													},
+													"allowedHosts": {
+														"type": "array",
+														"items": {
+															"type": "string"
+														}
+													}
+												},
+												"required": [
+													"id",
+													"domain",
+													"type",
+													"verified",
+													"primary",
+													"allowedHosts"
+												],
+												"additionalProperties": false
+											}
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_read_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/analytics/summary": {
+			"get": {
+				"summary": "Analytics summary",
+				"description": "Aggregated totals (clicks, unique clicks) for a date range, optionally filtered by dimension. Aggregated straight from Postgres, never the raw event stream. The effective range is clamped to the organization's current plan's analytics retention window when the requested `from` reaches further back than the plan allows — see the response's `clamped`/`range`.",
+				"operationId": "get_analytics_summary",
+				"x-required-permissions": ["analytics:read"],
+				"x-required-plan-capability": "apiRead",
+				"x-required-plan": "start",
+				"parameters": [
+					{
+						"name": "from",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"description": "ISO date, inclusive. Must be on or before `to`; the range between them cannot exceed 366 days. May be pushed forward server-side, independent of this cap, if it reaches further back than the organization's current plan retains analytics for — see the response's `clamped`/effective `range`."
+						}
+					},
+					{
+						"name": "to",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"description": "ISO date, inclusive. Must be on or after `from`; the range between them cannot exceed 366 days."
+						}
+					},
+					{
+						"name": "linkId",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `linkId` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "country",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `country` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "device",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `device` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "os",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `os` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "browser",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `browser` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "refererDomain",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `refererDomain` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "utmSource",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `utmSource` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "utmMedium",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `utmMedium` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "utmCampaign",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `utmCampaign` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "variantUrl",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `variantUrl` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "domain",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `domain` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Aggregated totals for the requested range.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"range": {
+													"type": "object",
+													"properties": {
+														"from": {
+															"type": "string"
+														},
+														"to": {
+															"type": "string"
+														}
+													},
+													"required": ["from", "to"],
+													"additionalProperties": false
+												},
+												"clamped": {
+													"type": "boolean",
+													"description": "True when `range.from` was moved forward because the requested period reached further back than the organization's current plan retains analytics for (`analyticsRetentionDays`) — `range` above reflects the EFFECTIVE (post-clamp) period the numbers were computed over, not necessarily the requested `from`."
+												},
+												"clicks": {
+													"type": "number"
+												},
+												"uniqueClicks": {
+													"type": "number"
+												}
+											},
+											"required": [
+												"range",
+												"clamped",
+												"clicks",
+												"uniqueClicks"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_read_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/analytics/timeseries": {
+			"get": {
+				"summary": "Analytics timeseries",
+				"description": "Daily click counts for a date range, optionally filtered by dimension. Same source and filters as the summary endpoint, including the same plan-retention range clamp — see that endpoint's description.",
+				"operationId": "get_analytics_timeseries",
+				"x-required-permissions": ["analytics:read"],
+				"x-required-plan-capability": "apiRead",
+				"x-required-plan": "start",
+				"parameters": [
+					{
+						"name": "from",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"description": "ISO date, inclusive. Must be on or before `to`; the range between them cannot exceed 366 days. May be pushed forward server-side, independent of this cap, if it reaches further back than the organization's current plan retains analytics for — see the response's `clamped`/effective `range`."
+						}
+					},
+					{
+						"name": "to",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string",
+							"description": "ISO date, inclusive. Must be on or after `from`; the range between them cannot exceed 366 days."
+						}
+					},
+					{
+						"name": "linkId",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `linkId` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "country",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `country` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "device",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `device` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "os",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `os` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "browser",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `browser` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "refererDomain",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `refererDomain` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "utmSource",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `utmSource` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "utmMedium",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `utmMedium` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "utmCampaign",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `utmCampaign` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "variantUrl",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `variantUrl` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "domain",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `domain` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "One point per day in the requested range.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"range": {
+													"type": "object",
+													"properties": {
+														"from": {
+															"type": "string"
+														},
+														"to": {
+															"type": "string"
+														}
+													},
+													"required": ["from", "to"],
+													"additionalProperties": false
+												},
+												"clamped": {
+													"type": "boolean",
+													"description": "Same meaning as `analytics/summary`'s `clamped` — see that endpoint's response schema."
+												},
+												"points": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"date": {
+																"type": "string"
+															},
+															"clicks": {
+																"type": "number"
+															}
+														},
+														"required": ["date", "clicks"],
+														"additionalProperties": false
+													}
+												}
+											},
+											"required": ["range", "clamped", "points"],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_read_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/analytics/events": {
+			"get": {
+				"summary": "Analytics events",
+				"description": "The raw per-click event stream, cursor-paginated (`limit`/`before`) and optionally filtered by dimension — same filters as `analytics/summary`/`analytics/timeseries`. Pulled directly from the real-time event stream (Cloudflare Analytics Engine), never the aggregated Postgres table those two endpoints use, so results reflect clicks within seconds. Same field set as the dashboard's events table, no reduction.",
+				"operationId": "get_analytics_events",
+				"x-required-permissions": ["analytics:read"],
+				"x-required-plan-capability": "apiRead",
+				"x-required-plan": "start",
+				"parameters": [
+					{
+						"name": "limit",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"default": 100,
+							"description": "Items per page. 1-500, default 100.",
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 500
+						}
+					},
+					{
+						"name": "before",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"description": "Cursor. ISO-8601 UTC timestamp — returns events strictly older than it. Omit for the first (most recent) page; pass the previous page's `pagination.next` to fetch the next one. Chosen over an epoch cursor for readability and because every other timestamp this API returns (`range.from`/`range.to`, and this same endpoint's own `pagination.next`) is already ISO-8601.",
+							"type": "string"
+						}
+					},
+					{
+						"name": "linkId",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `linkId` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "country",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `country` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "device",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `device` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "os",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `os` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "browser",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `browser` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "refererDomain",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `refererDomain` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "utmSource",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `utmSource` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "utmMedium",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `utmMedium` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "utmCampaign",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `utmCampaign` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "variantUrl",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `variantUrl` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "domain",
+						"in": "query",
+						"required": false,
+						"description": "Comma-separated list of `domain` values to filter by (an \"IN\" filter — exclude filters are not exposed in v1).",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A page of events plus pagination metadata.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"data": {
+											"$schema": "https://json-schema.org/draft/2020-12/schema",
+											"type": "object",
+											"properties": {
+												"items": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"timestamp": {
+																"type": "string"
+															},
+															"linkId": {
+																"type": "string"
+															},
+															"country": {
+																"type": "string"
+															},
+															"city": {
+																"type": "string"
+															},
+															"device": {
+																"type": "string"
+															},
+															"os": {
+																"type": "string"
+															},
+															"browser": {
+																"type": "string"
+															},
+															"refererDomain": {
+																"type": "string"
+															},
+															"refererUrl": {
+																"type": "string"
+															},
+															"utmSource": {
+																"type": "string"
+															},
+															"utmCampaign": {
+																"type": "string"
+															},
+															"variantUrl": {
+																"type": "string"
+															},
+															"clickId": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"timestamp",
+															"linkId",
+															"country",
+															"city",
+															"device",
+															"os",
+															"browser",
+															"refererDomain",
+															"refererUrl",
+															"utmSource",
+															"utmCampaign",
+															"variantUrl",
+															"clickId"
+														],
+														"additionalProperties": false
+													}
+												},
+												"pagination": {
+													"type": "object",
+													"properties": {
+														"hasMore": {
+															"type": "boolean"
+														},
+														"next": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													},
+													"required": ["hasMore", "next"],
+													"additionalProperties": false
+												}
+											},
+											"required": ["items", "pagination"],
+											"additionalProperties": false
+										}
+									},
+									"required": ["data"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "One of: unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "unauthorized"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["Missing or invalid API key."]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "One of: forbidden, api_read_capability_required.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "forbidden"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"The API key does not have permission to perform this action."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "One of: validation_error.",
+						"headers": {
+							"X-RateLimit-Limit": {
+								"description": "The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429).",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Remaining": {
+								"description": "Requests remaining in the current window.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							},
+							"X-RateLimit-Reset": {
+								"description": "Unix timestamp, in seconds, when the current window resets.",
+								"required": false,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "validation_error"
+												},
+												"message": {
+													"type": "string",
+													"examples": ["The request did not pass validation."]
+												},
+												"issues": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"message": {
+																"type": "string"
+															}
+														},
+														"required": ["path", "message"]
+													}
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "One of: rate_limited.",
+						"headers": {
+							"Retry-After": {
+								"description": "Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses.",
+								"required": true,
+								"schema": {
+									"type": "integer"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": {
+												"code": {
+													"type": "string",
+													"const": "rate_limited"
+												},
+												"message": {
+													"type": "string",
+													"examples": [
+														"Rate limit exceeded for this API key. Check the Retry-After header."
+													]
+												}
+											},
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

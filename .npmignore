@@ -1,0 +1,13 @@
+src/
+tests/
+examples/
+openapi/
+.github/
+.changeset/
+coverage/
+tsconfig.json
+tsup.config.ts
+biome.json
+bun.lock
+*.test.ts
+.DS_Store

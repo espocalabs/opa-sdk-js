@@ -1,0 +1,71 @@
+{
+  "name": "@opa.sh/sdk",
+  "version": "0.1.0",
+  "description": "Official TypeScript/JavaScript SDK for the Opa link shortener API",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "opa",
+    "link-shortener",
+    "url-shortener",
+    "sdk",
+    "api-client",
+    "typescript"
+  ],
+  "author": "Opa <suporte@opa.sh>",
+  "license": "MIT",
+  "homepage": "https://opa.sh",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/espocalabs/opa-sdk-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/espocalabs/opa-sdk-js/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "generate:types": "openapi-typescript openapi/v1.json -o src/generated/openapi.ts",
+    "release": "changeset publish",
+    "version": "changeset version"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.14.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@changesets/cli": "^2.27.0",
+    "@types/node": "^22.0.0",
+    "bun-types": "^1.1.0",
+    "openapi-typescript": "^7.5.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,65 @@
+name: Sync OpenAPI
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # daily 6am UTC
+  workflow_dispatch: # also runnable manually
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Fetch latest OpenAPI spec
+        run: curl -sL --fail https://api.opa.sh/v1/openapi -o openapi/v1.json
+
+      - name: Check if spec changed
+        id: diff
+        run: |
+          if git diff --quiet openapi/v1.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Regenerate types
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          bun install --frozen-lockfile
+          bun run generate:types
+
+      - name: Typecheck against the regenerated types
+        if: steps.diff.outputs.changed == 'true'
+        run: bun run typecheck
+
+      - name: Create PR
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(spec): sync OpenAPI from api.opa.sh"
+          title: "chore(spec): sync OpenAPI from api.opa.sh"
+          body: |
+            Automated PR from the `sync-openapi` workflow.
+
+            The OpenAPI spec at https://api.opa.sh/v1/openapi changed since the
+            last sync. `openapi/v1.json` and `src/generated/openapi.ts` were
+            regenerated accordingly.
+
+            `bun run typecheck` passed against the new types, which only
+            proves the hand-written resource wrappers (`src/resources/**`)
+            still compile — it does **not** prove they cover every new field
+            or endpoint. Review the diff for:
+            - New paths/operations with no corresponding resource method yet.
+            - New optional fields on existing request/response shapes that
+              should be documented in the README.
+            - Any breaking removal that should get a changeset
+              (`bunx changeset`) called out as a major bump.
+          branch: chore/sync-openapi
+          delete-branch: true
