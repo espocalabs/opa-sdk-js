@@ -19,7 +19,7 @@ export interface paths {
         put?: never;
         /**
          * Create a link
-         * @description Creates a link with the same contract as the dashboard's create form. Only `destinationUrl`/`domain` are meaningfully required — every other field has a default. Responds with the detail shape (same as `GET /links/{id}`).
+         * @description Creates a link with the same contract as the dashboard's create form. Only `destinationUrl` is required — every other field has a default, including `domain`: omit it to fall back to the team's default domain (primary custom domain, else the app's default short domain). Responds with the detail shape (same as `GET /links/{id}`).
          */
         post: operations["post_links"];
         delete?: never;
@@ -443,7 +443,7 @@ export interface operations {
                 "application/json": {
                     /** Format: uri */
                     destinationUrl: string;
-                    domain: string;
+                    domain?: string;
                     /** @default  */
                     key?: string;
                     /** @default  */
