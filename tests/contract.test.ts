@@ -82,17 +82,16 @@ describe("resource types stay in sync with the OpenAPI spec", () => {
 		expect(summary.tags).toHaveLength(1);
 	});
 
-	it("CreateLinkInput / UpdateLinkInput require destinationUrl + domain", () => {
+	it("CreateLinkInput / UpdateLinkInput require only destinationUrl (domain is optional)", () => {
 		const create = {
 			destinationUrl: "https://example.com",
-			domain: "opa.sh",
 		} satisfies CreateLinkInput;
 		const update = {
 			destinationUrl: "https://example.com/updated",
 			domain: "opa.sh",
 		} satisfies UpdateLinkInput;
 
-		expect(create.domain).toBe("opa.sh");
+		expect(create.destinationUrl).toBe("https://example.com");
 		expect(update.destinationUrl).toBe("https://example.com/updated");
 	});
 

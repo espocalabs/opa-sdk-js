@@ -28,21 +28,16 @@ export class AnalyticsResource {
 	 * Total and unique clicks for a date range (max 366 days), optionally
 	 * filtered by link, geo, device, or UTM fields. `from`/`to` are required.
 	 */
-	query(params: AnalyticsQueryParams, options?: RequestOptions): Promise<Result<AnalyticsSummary>> {
+	summary(
+		params: AnalyticsQueryParams,
+		options?: RequestOptions,
+	): Promise<Result<AnalyticsSummary>> {
 		return toResult(
 			this.http.GET("/analytics/summary", { params: { query: params }, signal: options?.signal }),
 		);
 	}
 
-	/** Alias for {@link query} — kept for readers coming from the dashboard's "Analytics summary". */
-	summary(
-		params: AnalyticsQueryParams,
-		options?: RequestOptions,
-	): Promise<Result<AnalyticsSummary>> {
-		return this.query(params, options);
-	}
-
-	/** Daily click counts across the same filters as {@link query}. */
+	/** Daily click counts across the same filters as {@link summary}. */
 	timeseries(
 		params: AnalyticsQueryParams,
 		options?: RequestOptions,

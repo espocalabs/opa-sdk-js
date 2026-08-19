@@ -27,7 +27,7 @@ const opa = createOpaClient({ apiKey: process.env.OPA_API_KEY! });
 const { data, error } = await opa.links.create({
   destinationUrl: "https://example.com/black-friday",
   domain: "opa.sh",
-  tags: ["campaign-2026"],
+  tagIds: ["tag_campaign2026"],
 });
 
 if (error) {
@@ -35,18 +35,17 @@ if (error) {
   return;
 }
 
-console.log(data.shortUrl); // narrowed to success shape
-console.log(data.qrCodeUrl);
+console.log(data.shortLink); // narrowed to success shape
 ```
 
-Get your API key at [opa.sh/settings/api-keys](https://app.opa.sh/settings/api-keys).
+Get your API key at [app.opa.sh/settings/api-keys](https://app.opa.sh/settings/api-keys).
 
 ## Authentication
 
 Server-side only — never expose a key from a browser bundle:
 
 ```ts
-const opa = createOpaClient({ apiKey: "opa_live_..." });
+const opa = createOpaClient({ apiKey: "opa_..." });
 ```
 
 Base URL defaults to `https://api.opa.sh/v1`. Override it for staging or self-hosted instances:
@@ -66,22 +65,24 @@ Every method returns `{ data, error }`. The client never throws for HTTP errors 
 const { data, error } = await opa.links.get("lnk_xxx");
 
 if (error) {
-  // error.code is a typed union: "unauthorized" | "not_found" | ...
-  // error.status is the HTTP status
-  // error.details may include field-level validation info
+  // error.code is a typed union: "unauthorized" | "not_found" | "validation_error" | ...
+  // error.status is the HTTP status (validation_error is always 422)
+  // error.issues has field-level detail when error.code === "validation_error"
   switch (error.code) {
     case "not_found":
       return notFound();
     case "rate_limited":
-      return retryLater(error.details?.retryAfter);
+      return retryLater(error.retryAfter); // ms, parsed from Retry-After
     default:
       return internalError(error);
   }
 }
 
 // data is narrowed to the success shape here
-console.log(data.shortUrl);
+console.log(data.shortLink);
 ```
+
+`OpaError` also exposes boolean getters for the common cases: `isAuthError`, `isPermissionError`, `isValidationError`, `isRateLimitError`. Use `isOpaError(value)` to narrow an unknown value.
 
 Network failures (connection reset, DNS, timeout) also come back as `error` with `code: "network_error"` — the client never crashes on transient issues.
 
@@ -90,12 +91,13 @@ Network failures (connection reset, DNS, timeout) also come back as `error` with
 ### Links
 
 ```ts
-// Create
+// Create — only destinationUrl is required; domain falls back to the
+// team's default domain when omitted.
 const { data } = await opa.links.create({
   destinationUrl: "https://example.com",
   domain: "opa.sh",
   key: "custom-slug", // optional
-  tags: ["marketing"],
+  tagIds: ["tag_marketing"],
   password: "s3cret",
   expiresAt: "2027-01-01T00:00:00Z",
 });
@@ -103,51 +105,59 @@ const { data } = await opa.links.create({
 // Read
 const { data } = await opa.links.get("lnk_xxx");
 
-// Update
+// Update — full-payload PATCH, same schema as create minus the id
 const { data } = await opa.links.update("lnk_xxx", {
   destinationUrl: "https://example.com/new",
 });
 
 // Lifecycle
-await opa.links.archive("lnk_xxx");
+await opa.links.archive("lnk_xxx"); // reversible — the link keeps resolving
 await opa.links.restore("lnk_xxx");
 await opa.links.duplicate("lnk_xxx");
 
-// List (single page)
-const { data, hasMore, nextCursor } = await opa.links.list({
-  tag: "marketing",
-  limit: 50,
-});
+// List — single page (await it)
+const { data } = await opa.links.list({ search: "marketing", limit: 50 });
+console.log(data.items, data.hasMore, data.nextCursor);
 
-// List (all pages — async iterator, memory-safe)
-for await (const link of opa.links.listAll({ tag: "marketing" })) {
-  console.log(link.shortUrl, link.clicks);
+// List — every page (for-await, memory-safe)
+for await (const link of opa.links.list({ search: "marketing" })) {
+  console.log(link.shortLink);
 }
 
 // Bulk operations
-await opa.links.bulkArchive({ ids: ["lnk_a", "lnk_b", "lnk_c"] });
-await opa.links.bulkTag({ ids: [...], addTags: ["q4-campaign"] });
+await opa.links.bulkArchive({ linkIds: ["lnk_a", "lnk_b", "lnk_c"] });
+await opa.links.bulkRestore({ linkIds: ["lnk_a", "lnk_b"] });
+await opa.links.bulkMove({ linkIds: ["lnk_a"], folderId: "fld_1" });
+await opa.links.bulkTag({ linkIds: ["lnk_a"], tagIds: ["tag_q4campaign"] });
 ```
+
+There is no `tag` list filter — use `search`, a case-insensitive substring match against the short link, destination URL, folder name, or tag name.
 
 ### Analytics
 
+`from`/`to` are required ISO-8601 dates on every analytics call (max 366-day range); there's no `range: "7d"` shorthand or `interval` parameter.
+
 ```ts
-const { data } = await opa.analytics.query({
+const { data } = await opa.analytics.summary({
   linkId: "lnk_xxx",
-  range: "7d", // "24h" | "7d" | "30d" | "90d" | custom
+  from: "2026-08-12T00:00:00Z",
+  to: "2026-08-19T23:59:59Z",
 });
 
+// One point per day over the same range/filters — no interval option.
 const { data } = await opa.analytics.timeseries({
   linkId: "lnk_xxx",
-  range: "30d",
-  interval: "day",
+  from: "2026-07-20T00:00:00Z",
+  to: "2026-08-19T23:59:59Z",
 });
 
-const { data } = await opa.analytics.events({
-  linkId: "lnk_xxx",
-  limit: 100,
-});
+// Raw click events — same await-one-page / for-await-every-page shape as opa.links.list
+for await (const event of opa.analytics.events({ linkId: "lnk_xxx", limit: 100 })) {
+  console.log(event.timestamp, event.country, event.device);
+}
 ```
+
+Both `summary` and `timeseries` accept the same optional filters: `country`, `device`, `os`, `browser`, `refererDomain`, `utmSource`, `utmMedium`, `utmCampaign`, `variantUrl`, `domain` (each a comma-separated "IN" filter).
 
 ### Domains
 
@@ -155,22 +165,27 @@ const { data } = await opa.analytics.events({
 const { data } = await opa.domains.list();
 ```
 
+Not paginated — the list of domains an organization can shorten links under is small by nature.
+
 ## Retries and rate limiting
 
-Automatic exponential backoff on `5xx` and `429`, respecting the `Retry-After` header. Never retries on `4xx` other than 429 (so idempotent semantics are preserved for `POST`).
+Automatic exponential backoff (with jitter) on `5xx` and `429` responses, plus transport-level failures. `Retry-After` (seconds or HTTP-date) is honored when present, taking priority over the computed backoff. 4xx errors other than 429 are never retried.
 
 ```ts
 const opa = createOpaClient({
   apiKey: "...",
-  retries: 3,          // default: 3
-  retryDelay: 1000,    // default: 1000ms base, doubles each attempt
-  onRateLimit: (info) => {
-    console.warn(`Rate limited. Reset at ${info.resetAt.toISOString()}`);
+  retry: {
+    retries: 3, // default: 3
+    minTimeoutMs: 500, // default: 500ms
+    maxTimeoutMs: 8000, // default: 8000ms ceiling
   },
 });
+
+// Disable retries entirely:
+const opa = createOpaClient({ apiKey: "...", retry: false });
 ```
 
-Rate limit headers (`x-ratelimit-limit`, `x-ratelimit-remaining`, `x-ratelimit-reset`) are surfaced via the `onRateLimit` callback whenever the API responds with them.
+Every response carries `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` (Unix seconds) headers — read them off the underlying `Response` if you need to react to them; the SDK doesn't currently surface a dedicated callback for this.
 
 ## Custom fetch
 
@@ -207,8 +222,8 @@ No dependencies at runtime beyond [`openapi-fetch`](https://github.com/openapi-t
 
 | Format | Size | Gzipped |
 | --- | --- | --- |
-| ESM | 5.6 KB | 2.1 KB |
-| CJS | 6.4 KB | 2.4 KB |
+| ESM | 5.3 KB | 2.0 KB |
+| CJS | 6.1 KB | 2.3 KB |
 
 Tree-shakes cleanly — you only pay for the resources you import.
 
