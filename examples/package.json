@@ -1,0 +1,17 @@
+{
+  "name": "@opa.sh/sdk-full-test",
+  "private": true,
+  "type": "module",
+  "description": "Exercises every public @opa.sh/sdk method against the real API. Not published.",
+  "scripts": {
+    "test": "tsx full-test.ts"
+  },
+  "dependencies": {
+    "@opa.sh/sdk": "file:.."
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
