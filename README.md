@@ -43,14 +43,10 @@ Get your API key at [opa.sh/settings/api-keys](https://app.opa.sh/settings/api-k
 
 ## Authentication
 
-Two options, both server-side only — never expose a key from a browser bundle:
+Server-side only — never expose a key from a browser bundle:
 
 ```ts
-// API key (recommended for server integrations)
 const opa = createOpaClient({ apiKey: "opa_live_..." });
-
-// Bearer token (for user-scoped JWT sessions)
-const opa = createOpaClient({ bearerToken: "eyJhbGci..." });
 ```
 
 Base URL defaults to `https://api.opa.sh/v1`. Override it for staging or self-hosted instances:
@@ -175,19 +171,6 @@ const opa = createOpaClient({
 ```
 
 Rate limit headers (`x-ratelimit-limit`, `x-ratelimit-remaining`, `x-ratelimit-reset`) are surfaced via the `onRateLimit` callback whenever the API responds with them.
-
-## Idempotency
-
-Pass an `idempotencyKey` on mutating operations to make retries safe. The API deduplicates requests with the same key for 24 hours.
-
-```ts
-const { data, error } = await opa.links.create(
-  { destinationUrl: "https://example.com", domain: "opa.sh" },
-  { idempotencyKey: "req_abc123" }
-);
-```
-
-Generate one per business operation with `crypto.randomUUID()`.
 
 ## Custom fetch
 

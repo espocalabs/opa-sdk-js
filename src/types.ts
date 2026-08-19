@@ -17,15 +17,9 @@ import type { OpaError } from "./errors.js";
 export type Result<T> = { data: T; error?: never } | { data?: never; error: OpaError };
 
 /**
- * Options accepted by every mutating resource method.
+ * Options accepted by every resource method.
  */
 export interface RequestOptions {
-	/**
-	 * A client-generated key that makes a mutating request safe to retry.
-	 * Sent as the `Idempotency-Key` header. Generate one with
-	 * `crypto.randomUUID()` (available globally on every supported runtime).
-	 */
-	idempotencyKey?: string;
 	/** Abort the request early. Forwarded straight to `fetch`. */
 	signal?: AbortSignal;
 }

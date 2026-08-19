@@ -35,14 +35,9 @@ export type OpaHttpClient = Client<paths>;
 export interface OpaClientConfig {
 	/**
 	 * Sent as the `x-api-key` header. Create one in the dashboard under
-	 * Settings → API. Mutually exclusive with `bearerToken`.
+	 * Settings → API.
 	 */
-	apiKey?: string;
-	/**
-	 * Sent as `Authorization: Bearer <token>` instead of `x-api-key`. Prefer
-	 * `apiKey` unless you're proxying a token you obtained another way.
-	 */
-	bearerToken?: string;
+	apiKey: string;
 	/** Override the API origin — mainly useful for testing. Default `https://api.opa.sh/v1`. */
 	baseUrl?: string;
 	/** Custom `fetch` implementation. Defaults to the global `fetch`. */
@@ -60,8 +55,7 @@ export interface OpaClient {
 }
 
 /**
- * Creates an Opa API client. Requires exactly one of `apiKey` or
- * `bearerToken`.
+ * Creates an Opa API client. Requires `apiKey`.
  *
  * @example
  * ```ts
@@ -75,11 +69,11 @@ export interface OpaClient {
  * ```
  */
 export function createOpaClient(config: OpaClientConfig): OpaClient {
-	const { apiKey, bearerToken, baseUrl = DEFAULT_BASE_URL, headers, retry } = config;
+	const { apiKey, baseUrl = DEFAULT_BASE_URL, headers, retry } = config;
 	const baseFetch = config.fetch ?? globalThis.fetch;
 
-	if (!apiKey && !bearerToken) {
-		throw new Error("createOpaClient: provide either `apiKey` or `bearerToken`.");
+	if (!apiKey) {
+		throw new Error("createOpaClient: `apiKey` is required.");
 	}
 	if (typeof baseFetch !== "function") {
 		throw new Error(
@@ -87,9 +81,7 @@ export function createOpaClient(config: OpaClientConfig): OpaClient {
 		);
 	}
 
-	const authHeaders: Record<string, string> = apiKey
-		? { "x-api-key": apiKey }
-		: { Authorization: `Bearer ${bearerToken}` };
+	const authHeaders: Record<string, string> = { "x-api-key": apiKey };
 
 	const resolvedFetch = retry === false ? baseFetch : createRetryFetch(baseFetch, retry ?? {});
 

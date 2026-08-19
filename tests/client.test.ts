@@ -5,10 +5,10 @@ import { DomainsResource } from "../src/resources/domains.js";
 import { LinksResource } from "../src/resources/links.js";
 
 describe("createOpaClient", () => {
-	it("throws when neither apiKey nor bearerToken is provided", () => {
-		// TS allows `{}` here because both fields are optional in the type —
-		// the runtime guard below exists for plain-JS callers without that check.
-		expect(() => createOpaClient({})).toThrow(/apiKey.*bearerToken/);
+	it("throws when apiKey is not provided", () => {
+		// @ts-expect-error `apiKey` is required — this exercises the runtime
+		// guard that protects plain-JS callers without that check.
+		expect(() => createOpaClient({})).toThrow(/apiKey/);
 	});
 
 	it("wires up the links, analytics and domains resources", () => {
@@ -37,22 +37,6 @@ describe("createOpaClient", () => {
 
 		expect(seenHeaders?.get("x-api-key")).toBe("opa_test_key");
 		expect(seenHeaders?.has("authorization")).toBe(false);
-	});
-
-	it("sends a bearer token via the Authorization header", async () => {
-		let seenHeaders: Headers | undefined;
-		const fetchStub = async (input: RequestInfo | URL) => {
-			seenHeaders = (input as Request).headers;
-			return new Response(JSON.stringify({ data: [] }), {
-				status: 200,
-				headers: { "Content-Type": "application/json" },
-			});
-		};
-
-		const opa = createOpaClient({ bearerToken: "tok_abc", fetch: fetchStub, retry: false });
-		await opa.domains.list();
-
-		expect(seenHeaders?.get("authorization")).toBe("Bearer tok_abc");
 	});
 
 	it("merges custom headers into every request", async () => {
@@ -112,21 +96,5 @@ describe("createOpaClient", () => {
 
 		expect(result.data).toBeUndefined();
 		expect(result.error?.code).toBe("unauthorized");
-	});
-
-	it("sends the Idempotency-Key header on mutating calls when provided", async () => {
-		let seenHeaders: Headers | undefined;
-		const fetchStub = async (input: RequestInfo | URL) => {
-			seenHeaders = (input as Request).headers;
-			return new Response(JSON.stringify({ data: { archivedCount: 1 } }), {
-				status: 200,
-				headers: { "Content-Type": "application/json" },
-			});
-		};
-
-		const opa = createOpaClient({ apiKey: "opa_test_key", fetch: fetchStub, retry: false });
-		await opa.links.bulkArchive({ linkIds: ["lnk_1"] }, { idempotencyKey: "idem-key-123" });
-
-		expect(seenHeaders?.get("idempotency-key")).toBe("idem-key-123");
 	});
 });

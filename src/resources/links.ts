@@ -41,10 +41,6 @@ export type BulkTagInput =
 export type BulkTagResult =
 	Paths["/links/bulk-tag"]["post"]["responses"]["200"]["content"]["application/json"]["data"];
 
-function idempotencyHeaders(options?: RequestOptions): Record<string, string> | undefined {
-	return options?.idempotencyKey ? { "Idempotency-Key": options.idempotencyKey } : undefined;
-}
-
 /** `opa.links` — create, read, update, archive/restore and bulk-manage short links. */
 export class LinksResource {
 	constructor(private readonly http: OpaHttpClient) {}
@@ -85,7 +81,6 @@ export class LinksResource {
 		return toResult(
 			this.http.POST("/links", {
 				body: input,
-				headers: idempotencyHeaders(options),
 				signal: options?.signal,
 			}),
 		);
@@ -97,7 +92,6 @@ export class LinksResource {
 			this.http.PATCH("/links/{id}", {
 				params: { path: { id } },
 				body: input,
-				headers: idempotencyHeaders(options),
 				signal: options?.signal,
 			}),
 		);
@@ -108,7 +102,6 @@ export class LinksResource {
 		return toResult(
 			this.http.DELETE("/links/{id}", {
 				params: { path: { id } },
-				headers: idempotencyHeaders(options),
 				signal: options?.signal,
 			}),
 		);
@@ -119,7 +112,6 @@ export class LinksResource {
 		return toResult(
 			this.http.POST("/links/{id}/restore", {
 				params: { path: { id } },
-				headers: idempotencyHeaders(options),
 				signal: options?.signal,
 			}),
 		);
@@ -130,7 +122,6 @@ export class LinksResource {
 		return toResult(
 			this.http.POST("/links/{id}/duplicate", {
 				params: { path: { id } },
-				headers: idempotencyHeaders(options),
 				signal: options?.signal,
 			}),
 		);
@@ -144,7 +135,6 @@ export class LinksResource {
 		return toResult(
 			this.http.POST("/links/bulk-archive", {
 				body: input,
-				headers: idempotencyHeaders(options),
 				signal: options?.signal,
 			}),
 		);
@@ -158,7 +148,6 @@ export class LinksResource {
 		return toResult(
 			this.http.POST("/links/bulk-restore", {
 				body: input,
-				headers: idempotencyHeaders(options),
 				signal: options?.signal,
 			}),
 		);
@@ -169,7 +158,6 @@ export class LinksResource {
 		return toResult(
 			this.http.POST("/links/bulk-move", {
 				body: input,
-				headers: idempotencyHeaders(options),
 				signal: options?.signal,
 			}),
 		);
@@ -180,7 +168,6 @@ export class LinksResource {
 		return toResult(
 			this.http.POST("/links/bulk-tag", {
 				body: input,
-				headers: idempotencyHeaders(options),
 				signal: options?.signal,
 			}),
 		);
