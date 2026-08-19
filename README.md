@@ -4,232 +4,20 @@
 [![CI](https://github.com/espocalabs/opa-sdk-js/actions/workflows/ci.yml/badge.svg)](https://github.com/espocalabs/opa-sdk-js/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-SDK oficial em TypeScript/JavaScript para a [API pública do Opa](https://opa.sh) (`https://api.opa.sh/v1`).
+Official TypeScript/JavaScript SDK for the [Opa link shortener](https://opa.sh) API (`https://api.opa.sh/v1`).
 
-**[English version below](#english)**
+Resource-oriented, fully typed from the OpenAPI spec, universal runtime (Node, Bun, Browser, Cloudflare Workers, Deno), never throws — errors are always returned as values.
 
----
-
-## Início rápido
-
-```bash
-npm install @opa.sh/sdk
-# ou: bun add @opa.sh/sdk
-# ou: pnpm add @opa.sh/sdk
-```
-
-```ts
-import { createOpaClient } from "@opa.sh/sdk";
-
-const opa = createOpaClient({ apiKey: process.env.OPA_API_KEY! });
-
-const { data, error } = await opa.links.create({
-  destinationUrl: "https://example.com",
-  domain: "opa.sh",
-});
-
-if (error) {
-  console.error(error.code, error.message);
-} else {
-  console.log(data.shortLink); // https://opa.sh/abc123
-}
-```
-
-Funciona em qualquer runtime com `fetch` global: Node.js 18+, Bun, Deno, navegadores e Cloudflare Workers. Zero dependências de runtime além de [`openapi-fetch`](https://openapi-ts.dev/openapi-fetch/).
-
-## Autenticação
-
-```ts
-// Chave de API (recomendado) — Settings → API no dashboard
-const opa = createOpaClient({ apiKey: "opa_live_..." });
-
-// Ou um bearer token
-const opa = createOpaClient({ bearerToken: "..." });
-```
-
-## Exemplos por recurso
-
-### Links
-
-```ts
-// Criar
-const { data: link } = await opa.links.create({
-  destinationUrl: "https://example.com/produto",
-  domain: "opa.sh",
-  title: "Lançamento",
-  tagIds: ["tag_marketing"],
-});
-
-// Buscar
-const { data: link } = await opa.links.get("lnk_123");
-
-// Atualizar
-const { data: link } = await opa.links.update("lnk_123", {
-  destinationUrl: "https://example.com/produto-v2",
-  domain: "opa.sh",
-});
-
-// Arquivar / restaurar / duplicar
-await opa.links.archive("lnk_123");
-await opa.links.restore("lnk_123");
-const { data: copy } = await opa.links.duplicate("lnk_123");
-
-// Operações em lote
-await opa.links.bulkArchive({ linkIds: ["lnk_1", "lnk_2"] });
-await opa.links.bulkRestore({ linkIds: ["lnk_1", "lnk_2"] });
-await opa.links.bulkMove({ linkIds: ["lnk_1"], folderId: "fld_1" });
-await opa.links.bulkTag({ linkIds: ["lnk_1"], tagIds: ["tag_1"] });
-```
-
-### Analytics
-
-```ts
-const { data: summary } = await opa.analytics.query({
-  from: "2026-01-01",
-  to: "2026-01-31",
-  linkId: "lnk_123", // opcional
-});
-console.log(summary.clicks, summary.uniqueClicks);
-
-const { data: timeseries } = await opa.analytics.timeseries({
-  from: "2026-01-01",
-  to: "2026-01-31",
-});
-for (const point of timeseries.points) {
-  console.log(point.date, point.clicks);
-}
-
-// Eventos brutos de clique, paginados (veja "Paginação" abaixo)
-for await (const event of opa.analytics.events({ linkId: "lnk_123" })) {
-  console.log(event.timestamp, event.country, event.device);
-}
-```
-
-### Domains
-
-```ts
-const { data: domains } = await opa.domains.list();
-for (const domain of domains) {
-  console.log(domain.domain, domain.verified);
-}
-```
-
-## Tratamento de erros
-
-Nenhum método da SDK lança exceção para falhas da API — todos retornam `{ data, error }`. Sempre verifique `error` antes de usar `data`:
-
-```ts
-const { data, error } = await opa.links.create({
-  destinationUrl: "not-a-url",
-  domain: "opa.sh",
-});
-
-if (error) {
-  if (error.isValidationError) {
-    console.error(error.issues); // [{ path, message }]
-  } else if (error.isRateLimitError) {
-    console.error("retry after ms:", error.retryAfter);
-  } else {
-    console.error(error.code, error.message);
-  }
-  return;
-}
-```
-
-`OpaError` estende `Error` e expõe `code`, `status`, `issues?`, `retryAfter?` e os getters `isAuthError`, `isPermissionError`, `isValidationError`, `isRateLimitError`.
-
-> A única exceção à regra "nunca lança": iterar uma lista paginada (`for await`) lança o `OpaError` se uma página no meio do caminho falhar — é o único canal que `for await` tem para propagar um erro. Use `try/catch` ao redor da iteração se uma página tardia puder falhar.
-
-## Paginação
-
-Todo método de listagem retorna algo que é ao mesmo tempo uma `Promise` (resolve a primeira página) e um `AsyncIterable` (percorre todas as páginas):
-
-```ts
-// Modo eager — uma página
-const { data, error } = await opa.links.list({ limit: 50 });
-if (!error) {
-  console.log(data.items, data.hasMore, data.nextCursor);
-}
-
-// Modo iterador — todas as páginas, buscadas sob demanda
-for await (const link of opa.links.list()) {
-  console.log(link.shortLink);
-}
-```
-
-## Retry
-
-Requisições em `5xx` e `429` são automaticamente re-tentadas com backoff exponencial (3 tentativas por padrão), respeitando o header `Retry-After` quando presente.
-
-```ts
-const opa = createOpaClient({
-  apiKey: "...",
-  retry: { retries: 5, minTimeoutMs: 300, maxTimeoutMs: 10_000 },
-});
-
-// Ou desabilitar totalmente
-const opa = createOpaClient({ apiKey: "...", retry: false });
-```
-
-## Idempotência
-
-Métodos mutativos aceitam uma `idempotencyKey` opcional como último argumento, enviada no header `Idempotency-Key` — seguro para reenviar em caso de timeout ou retry manual:
-
-```ts
-await opa.links.create(
-  { destinationUrl: "https://example.com", domain: "opa.sh" },
-  { idempotencyKey: crypto.randomUUID() },
-);
-```
-
-## Suporte a TypeScript
-
-A SDK é "types-first": todo tipo de entrada/saída é derivado do OpenAPI spec público (`https://api.opa.sh/v1/openapi`) via [`openapi-typescript`](https://openapi-ts.dev/), então autocomplete e checagem de tipos refletem exatamente o que a API aceita e retorna.
-
-```ts
-import type { Link, CreateLinkInput, AnalyticsSummary } from "@opa.sh/sdk";
-```
-
-## Contribuindo
-
-```bash
-git clone https://github.com/espocalabs/opa-sdk-js.git
-cd opa-sdk-js
-bun install
-bun run generate:types   # regenera src/generated/openapi.ts a partir de openapi/v1.json
-bun run typecheck
-bun run lint
-bun test
-bun run build
-```
-
-Um workflow diário (`sync-openapi.yml`) puxa o spec público mais recente, regenera os tipos e abre um PR automaticamente quando o spec muda. Ao adicionar um endpoint novo à API, o PR automático avisa — mas o wrapper de recurso correspondente em `src/resources/**` ainda precisa ser escrito à mão.
-
-Mudanças que afetam o pacote publicado precisam de um changeset:
-
-```bash
-bunx changeset
-```
-
-## Licença
-
-MIT — veja [LICENSE](./LICENSE).
-
----
-
-<a id="english"></a>
-
-## English
-
-Official TypeScript/JavaScript SDK for the [Opa](https://opa.sh) public API (`https://api.opa.sh/v1`).
-
-### Quick start
+## Install
 
 ```bash
 npm install @opa.sh/sdk
 # or: bun add @opa.sh/sdk
 # or: pnpm add @opa.sh/sdk
+# or: yarn add @opa.sh/sdk
 ```
+
+## Quick start
 
 ```ts
 import { createOpaClient } from "@opa.sh/sdk";
@@ -237,136 +25,228 @@ import { createOpaClient } from "@opa.sh/sdk";
 const opa = createOpaClient({ apiKey: process.env.OPA_API_KEY! });
 
 const { data, error } = await opa.links.create({
-  destinationUrl: "https://example.com",
+  destinationUrl: "https://example.com/black-friday",
   domain: "opa.sh",
+  tags: ["campaign-2026"],
 });
 
 if (error) {
   console.error(error.code, error.message);
-} else {
-  console.log(data.shortLink); // https://opa.sh/abc123
-}
-```
-
-Works in any runtime with a global `fetch`: Node.js 18+, Bun, Deno, browsers, and Cloudflare Workers. Zero runtime dependencies beyond [`openapi-fetch`](https://openapi-ts.dev/openapi-fetch/).
-
-### Auth
-
-```ts
-// API key (recommended) — Settings → API in the dashboard
-const opa = createOpaClient({ apiKey: "opa_live_..." });
-
-// Or a bearer token
-const opa = createOpaClient({ bearerToken: "..." });
-```
-
-### Examples by resource
-
-```ts
-// Links
-const { data: link } = await opa.links.create({
-  destinationUrl: "https://example.com/product",
-  domain: "opa.sh",
-});
-await opa.links.archive(link.id);
-await opa.links.restore(link.id);
-
-// Analytics
-const { data: summary } = await opa.analytics.query({ from: "2026-01-01", to: "2026-01-31" });
-for await (const event of opa.analytics.events()) {
-  console.log(event.timestamp, event.country);
-}
-
-// Domains
-const { data: domains } = await opa.domains.list();
-```
-
-### Error handling
-
-No SDK method throws for API-level failures — every call resolves to `{ data, error }`:
-
-```ts
-const { data, error } = await opa.links.get("lnk_123");
-if (error) {
-  if (error.isRateLimitError) console.error("retry after ms:", error.retryAfter);
   return;
 }
-console.log(data.shortLink);
+
+console.log(data.shortUrl); // narrowed to success shape
+console.log(data.qrCodeUrl);
 ```
 
-`OpaError` extends `Error` and exposes `code`, `status`, `issues?`, `retryAfter?`, plus `isAuthError`, `isPermissionError`, `isValidationError`, `isRateLimitError` getters.
+Get your API key at [opa.sh/settings/api-keys](https://app.opa.sh/settings/api-keys).
 
-> The one exception to "never throw": iterating a paginated list (`for await`) throws the `OpaError` if a later page fails — that's the only channel `for await` has to surface it. Wrap iteration in `try/catch` if a later page might fail.
+## Authentication
 
-### Pagination
-
-Every list method returns something that is both a `Promise` (resolves the first page) and an `AsyncIterable` (walks every page):
+Two options, both server-side only — never expose a key from a browser bundle:
 
 ```ts
-// Eager — one page
-const { data } = await opa.links.list({ limit: 50 });
-console.log(data.items, data.hasMore, data.nextCursor);
+// API key (recommended for server integrations)
+const opa = createOpaClient({ apiKey: "opa_live_..." });
 
-// Iterator — every page, fetched on demand
-for await (const link of opa.links.list()) {
-  console.log(link.shortLink);
-}
+// Bearer token (for user-scoped JWT sessions)
+const opa = createOpaClient({ bearerToken: "eyJhbGci..." });
 ```
 
-### Retry
-
-`5xx` and `429` responses are automatically retried with exponential backoff (3 attempts by default), honoring `Retry-After` when present.
+Base URL defaults to `https://api.opa.sh/v1`. Override it for staging or self-hosted instances:
 
 ```ts
 const opa = createOpaClient({
   apiKey: "...",
-  retry: { retries: 5, minTimeoutMs: 300, maxTimeoutMs: 10_000 },
+  baseUrl: "https://api.staging.opa.sh/v1",
 });
-
-// Or disable retries entirely
-const opa = createOpaClient({ apiKey: "...", retry: false });
 ```
 
-### Idempotency
+## Errors — Result pattern
 
-Mutating methods accept an optional `idempotencyKey` as their last argument, sent as the `Idempotency-Key` header — safe to resend after a timeout or manual retry:
+Every method returns `{ data, error }`. The client never throws for HTTP errors — you're forced to handle them at the call site, and TypeScript narrows `data` to the success shape after the error check.
 
 ```ts
-await opa.links.create(
+const { data, error } = await opa.links.get("lnk_xxx");
+
+if (error) {
+  // error.code is a typed union: "unauthorized" | "not_found" | ...
+  // error.status is the HTTP status
+  // error.details may include field-level validation info
+  switch (error.code) {
+    case "not_found":
+      return notFound();
+    case "rate_limited":
+      return retryLater(error.details?.retryAfter);
+    default:
+      return internalError(error);
+  }
+}
+
+// data is narrowed to the success shape here
+console.log(data.shortUrl);
+```
+
+Network failures (connection reset, DNS, timeout) also come back as `error` with `code: "network_error"` — the client never crashes on transient issues.
+
+## Resources
+
+### Links
+
+```ts
+// Create
+const { data } = await opa.links.create({
+  destinationUrl: "https://example.com",
+  domain: "opa.sh",
+  key: "custom-slug", // optional
+  tags: ["marketing"],
+  password: "s3cret",
+  expiresAt: "2027-01-01T00:00:00Z",
+});
+
+// Read
+const { data } = await opa.links.get("lnk_xxx");
+
+// Update
+const { data } = await opa.links.update("lnk_xxx", {
+  destinationUrl: "https://example.com/new",
+});
+
+// Lifecycle
+await opa.links.archive("lnk_xxx");
+await opa.links.restore("lnk_xxx");
+await opa.links.duplicate("lnk_xxx");
+
+// List (single page)
+const { data, hasMore, nextCursor } = await opa.links.list({
+  tag: "marketing",
+  limit: 50,
+});
+
+// List (all pages — async iterator, memory-safe)
+for await (const link of opa.links.listAll({ tag: "marketing" })) {
+  console.log(link.shortUrl, link.clicks);
+}
+
+// Bulk operations
+await opa.links.bulkArchive({ ids: ["lnk_a", "lnk_b", "lnk_c"] });
+await opa.links.bulkTag({ ids: [...], addTags: ["q4-campaign"] });
+```
+
+### Analytics
+
+```ts
+const { data } = await opa.analytics.query({
+  linkId: "lnk_xxx",
+  range: "7d", // "24h" | "7d" | "30d" | "90d" | custom
+});
+
+const { data } = await opa.analytics.timeseries({
+  linkId: "lnk_xxx",
+  range: "30d",
+  interval: "day",
+});
+
+const { data } = await opa.analytics.events({
+  linkId: "lnk_xxx",
+  limit: 100,
+});
+```
+
+### Domains
+
+```ts
+const { data } = await opa.domains.list();
+```
+
+## Retries and rate limiting
+
+Automatic exponential backoff on `5xx` and `429`, respecting the `Retry-After` header. Never retries on `4xx` other than 429 (so idempotent semantics are preserved for `POST`).
+
+```ts
+const opa = createOpaClient({
+  apiKey: "...",
+  retries: 3,          // default: 3
+  retryDelay: 1000,    // default: 1000ms base, doubles each attempt
+  onRateLimit: (info) => {
+    console.warn(`Rate limited. Reset at ${info.resetAt.toISOString()}`);
+  },
+});
+```
+
+Rate limit headers (`x-ratelimit-limit`, `x-ratelimit-remaining`, `x-ratelimit-reset`) are surfaced via the `onRateLimit` callback whenever the API responds with them.
+
+## Idempotency
+
+Pass an `idempotencyKey` on mutating operations to make retries safe. The API deduplicates requests with the same key for 24 hours.
+
+```ts
+const { data, error } = await opa.links.create(
   { destinationUrl: "https://example.com", domain: "opa.sh" },
-  { idempotencyKey: crypto.randomUUID() },
+  { idempotencyKey: "req_abc123" }
 );
 ```
 
-### TypeScript support
+Generate one per business operation with `crypto.randomUUID()`.
 
-Types-first: every input/output type is derived from the public OpenAPI spec (`https://api.opa.sh/v1/openapi`) via [`openapi-typescript`](https://openapi-ts.dev/), so autocomplete and type-checking match exactly what the API accepts and returns.
+## Custom fetch
+
+For SSR, RSC, or edge runtimes that need a specific fetch implementation:
 
 ```ts
-import type { Link, CreateLinkInput, AnalyticsSummary } from "@opa.sh/sdk";
+const opa = createOpaClient({
+  apiKey: "...",
+  fetch: customFetch, // must match the Fetch API signature
+});
 ```
 
-### Contributing
+Useful for Next.js `unstable_cache`, Cloudflare Workers with request-scoped `env.fetcher`, or MSW test mocks.
+
+## TypeScript
+
+Types are generated from the live OpenAPI spec (`openapi/v1.json`) via [`openapi-typescript`](https://github.com/openapi-ts/openapi-typescript). Autocomplete covers every path, method, body, query param, and response — a rename on the server surfaces as a compile error in the SDK.
+
+```ts
+import type { OpaClient, OpaError, OpaErrorCode } from "@opa.sh/sdk";
+```
+
+## Runtime support
+
+- Node.js 18+ (uses global `fetch`)
+- Bun
+- Deno
+- Cloudflare Workers (workerd)
+- Modern browsers — **do not expose your API key in the browser bundle**; proxy through your server
+
+No dependencies at runtime beyond [`openapi-fetch`](https://github.com/openapi-ts/openapi-typescript/tree/main/packages/openapi-fetch) (~2KB gzipped).
+
+## Bundle size
+
+| Format | Size | Gzipped |
+| --- | --- | --- |
+| ESM | 5.6 KB | 2.1 KB |
+| CJS | 6.4 KB | 2.4 KB |
+
+Tree-shakes cleanly — you only pay for the resources you import.
+
+## Contributing
+
+The SDK is a wrapper around the auto-generated OpenAPI types. The generator (`bun run generate:types`) runs against `openapi/v1.json`, which is refreshed daily from `https://api.opa.sh/v1/openapi` via the `sync-openapi` workflow. When the spec adds a new endpoint, the sync workflow opens a PR you can extend with a hand-written resource wrapper.
 
 ```bash
-git clone https://github.com/espocalabs/opa-sdk-js.git
+git clone https://github.com/espocalabs/opa-sdk-js
 cd opa-sdk-js
 bun install
-bun run generate:types   # regenerate src/generated/openapi.ts from openapi/v1.json
-bun run typecheck
-bun run lint
 bun test
 bun run build
 ```
 
-A daily workflow (`sync-openapi.yml`) pulls the latest public spec, regenerates types, and opens a PR automatically when the spec changes. When the API gains a new endpoint, that PR will flag it — but the corresponding resource wrapper under `src/resources/**` still needs to be hand-written.
-
-Changes that affect the published package need a changeset:
+Add a changeset before opening a PR:
 
 ```bash
 bunx changeset
 ```
 
-### License
+## License
 
-MIT — see [LICENSE](./LICENSE).
+[MIT](./LICENSE) © Espoca Labs
