@@ -1,8 +1,11 @@
+import type { paths as GeneratedPaths } from "./generated/openapi.js";
+import type { TrackingPaths } from "./tracking-contract.js";
+
 export type { OpaClient, OpaClientConfig, OpaHttpClient } from "./client.js";
 export { createOpaClient, DEFAULT_BASE_URL } from "./client.js";
 export type { OpaErrorCode, OpaErrorInit, OpaErrorIssue } from "./errors.js";
 export { isOpaError, OpaError, parseError, toResult } from "./errors.js";
-export type { paths as OpaPaths } from "./generated/openapi.js";
+export type OpaPaths = GeneratedPaths & TrackingPaths;
 export type { ListPromise } from "./pagination.js";
 export { createListPromise } from "./pagination.js";
 export type {
