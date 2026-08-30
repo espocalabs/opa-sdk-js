@@ -12,6 +12,7 @@ import type { paths } from "./generated/openapi.js";
 import { AnalyticsResource } from "./resources/analytics.js";
 import { DomainsResource } from "./resources/domains.js";
 import { LinksResource } from "./resources/links.js";
+import { TrackResource } from "./resources/track.js";
 import { createRetryFetch, type FetchLike, type RetryConfig } from "./retry.js";
 import type { TrackingPaths } from "./tracking-contract.js";
 
@@ -53,6 +54,7 @@ export interface OpaClient {
 	links: LinksResource;
 	analytics: AnalyticsResource;
 	domains: DomainsResource;
+	track: TrackResource;
 }
 
 /**
@@ -96,5 +98,6 @@ export function createOpaClient(config: OpaClientConfig): OpaClient {
 		links: new LinksResource(http),
 		analytics: new AnalyticsResource(http),
 		domains: new DomainsResource(http),
+		track: new TrackResource(http),
 	};
 }
