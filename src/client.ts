@@ -13,6 +13,7 @@ import { AnalyticsResource } from "./resources/analytics.js";
 import { DomainsResource } from "./resources/domains.js";
 import { LinksResource } from "./resources/links.js";
 import { createRetryFetch, type FetchLike, type RetryConfig } from "./retry.js";
+import type { TrackingPaths } from "./tracking-contract.js";
 
 // The `{}` bound mirrors openapi-fetch's own `createClient<Paths extends {}>` constraint.
 type CreateFetchClientFn = <P extends {}>(options?: ClientOptions) => Client<P>;
@@ -30,7 +31,7 @@ const createFetchClient = resolveCreateFetchClient();
 
 export const DEFAULT_BASE_URL = "https://api.opa.sh/v1";
 
-export type OpaHttpClient = Client<paths>;
+export type OpaHttpClient = Client<paths & TrackingPaths>;
 
 export interface OpaClientConfig {
 	/**
@@ -85,7 +86,7 @@ export function createOpaClient(config: OpaClientConfig): OpaClient {
 
 	const resolvedFetch = retry === false ? baseFetch : createRetryFetch(baseFetch, retry ?? {});
 
-	const http = createFetchClient<paths>({
+	const http = createFetchClient<paths & TrackingPaths>({
 		baseUrl,
 		fetch: resolvedFetch,
 		headers: { ...authHeaders, ...headers },
