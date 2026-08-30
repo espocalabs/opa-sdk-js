@@ -96,7 +96,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/links/bulk-archive": {
+    "/links/bulk/archive": {
         parameters: {
             query?: never;
             header?: never;
@@ -107,16 +107,16 @@ export interface paths {
         put?: never;
         /**
          * Bulk archive links
-         * @description Archives every link in `linkIds` in one call — same effect as `DELETE /links/{id}`, batched. All-or-nothing on membership: if any id does not belong to the organization (or does not exist), the whole request fails `not_found` — there is no partial/best-effort success. Reversible with `POST /links/bulk-restore`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.
+         * @description Archives every link in `linkIds` in one call — same effect as `DELETE /links/{id}`, batched. All-or-nothing on membership: if any id does not belong to the organization (or does not exist), the whole request fails `not_found` — there is no partial/best-effort success. Reversible with `POST /links/bulk/restore`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.
          */
-        post: operations["post_links_bulk-archive"];
+        post: operations["post_links_bulk_archive"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/links/bulk-restore": {
+    "/links/bulk/restore": {
         parameters: {
             query?: never;
             header?: never;
@@ -127,16 +127,16 @@ export interface paths {
         put?: never;
         /**
          * Bulk restore archived links
-         * @description Un-archives every link in `linkIds` in one call, the counterpart to `POST /links/bulk-archive`. Same all-or-nothing membership check: any id outside the organization fails the whole request with `not_found`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.
+         * @description Un-archives every link in `linkIds` in one call, the counterpart to `POST /links/bulk/archive`. Same all-or-nothing membership check: any id outside the organization fails the whole request with `not_found`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.
          */
-        post: operations["post_links_bulk-restore"];
+        post: operations["post_links_bulk_restore"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/links/bulk-move": {
+    "/links/bulk/move": {
         parameters: {
             query?: never;
             header?: never;
@@ -147,16 +147,16 @@ export interface paths {
         put?: never;
         /**
          * Bulk move links to a folder
-         * @description Moves every link in `linkIds` into `folderId` in one call. `folderId` must belong to the organization (`folder_not_found` otherwise). Same all-or-nothing membership check on `linkIds` as `POST /links/bulk-archive`: any id outside the organization fails the whole request with `not_found`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.
+         * @description Moves every link in `linkIds` into `folderId` in one call. `folderId` must belong to the organization (`folder_not_found` otherwise). Same all-or-nothing membership check on `linkIds` as `POST /links/bulk/archive`: any id outside the organization fails the whole request with `not_found`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.
          */
-        post: operations["post_links_bulk-move"];
+        post: operations["post_links_bulk_move"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/links/bulk-tag": {
+    "/links/bulk/tag": {
         parameters: {
             query?: never;
             header?: never;
@@ -167,9 +167,9 @@ export interface paths {
         put?: never;
         /**
          * Bulk add tags to links
-         * @description Adds (never replaces) every tag in `tagIds` to every link in `linkIds`. Every id in `tagIds` must belong to the organization (`tags_not_found` otherwise). Re-tagging a link that already carries one of the tags is a no-op, not an error. Same all-or-nothing membership check on `linkIds` as `POST /links/bulk-archive`: any id outside the organization fails the whole request with `not_found`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.
+         * @description Adds (never replaces) every tag in `tagIds` to every link in `linkIds`. Every id in `tagIds` must belong to the organization (`tags_not_found` otherwise). Re-tagging a link that already carries one of the tags is a no-op, not an error. Same all-or-nothing membership check on `linkIds` as `POST /links/bulk/archive`: any id outside the organization fails the whole request with `not_found`. Requires the `bulk` plan capability (Start plan or above) — otherwise fails `bulk_capability_required`.
          */
-        post: operations["post_links_bulk-tag"];
+        post: operations["post_links_bulk_tag"];
         delete?: never;
         options?: never;
         head?: never;
@@ -185,7 +185,7 @@ export interface paths {
         };
         /**
          * List usable domains
-         * @description Domains this organization can use as a link's `domain`: its own custom (USER_DOMAIN) domains plus every verified shared (APP_DOMAIN) domain.
+         * @description Domains this organization can use as a link's `domain`: its own custom (USER_DOMAIN) domains, every verified shared (APP_DOMAIN) domain, plus any APP_DEFAULT domain — a domain `POST /links` would default to when `domain` is omitted from the body, even if it doesn't have a row of its own yet (e.g. a fresh install's shared short domain).
          */
         get: operations["get_domains"];
         put?: never;
@@ -245,11 +245,91 @@ export interface paths {
         };
         /**
          * Analytics events
-         * @description The raw per-click event stream, cursor-paginated (`limit`/`before`) and optionally filtered by dimension — same filters as `analytics/summary`/`analytics/timeseries`. Pulled directly from the real-time event stream (Cloudflare Analytics Engine), never the aggregated Postgres table those two endpoints use, so results reflect clicks within seconds. Same field set as the dashboard's events table, no reduction.
+         * @description The raw per-click event stream, cursor-paginated (`limit`/`before`) and optionally filtered by dimension — same filters as `analytics/summary`/`analytics/timeseries`. Pulled directly from Tinybird's raw event pipe, never the aggregated pipes those two endpoints use, so results reflect clicks within seconds. Same field set as the dashboard's events table, no reduction.
          */
         get: operations["get_analytics_events"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/track/identify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Identify a customer
+         * @description Binds the browser's anonymous visitor id to your stable external customer id without recording a lead. Accepts either a secret `x-api-key` with `conversions:write` or a public, origin-bound `x-opa-site-key` for browser SDK calls.
+         */
+        post: operations["post_track_identify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/track/event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Track an event
+         * @description Records an idempotent generic event for an anonymous or identified customer. Accepts either a secret `x-api-key` with `conversions:write` or a public, origin-bound `x-opa-site-key` for browser SDK calls.
+         */
+        post: operations["post_track_event"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/track/lead": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Track a lead
+         * @description Binds a click to a customer and records a `lead` conversion event — the anchor that ties a `clickId` to your own `customerExternalId` so later sales only need the external id. Upserts the customer (stamping their first click). Deduped by `(customerExternalId, eventName)`: reporting the same lead twice records ONE event and responds `200` both times — `deduped` in the response says whether this call recorded a new event. Requires the `conversions:write` scope and full (read/write) API access (Pro plan).
+         */
+        post: operations["post_track_lead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/track/sale": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Track a sale
+         * @description Records a monetary `sale` conversion event for a customer. `amount` is an integer number of minor units (cents), `>= 0` — a float or negative value is rejected. The customer must already be known via a prior lead, unless a `clickId` is supplied to bind one on the fly (otherwise `customer_not_found`). Idempotent on `invoiceId`: a replayed invoice records the sale exactly once and responds `200` with `deduped: true`, so retries never double-count revenue. Requires the `conversions:write` scope and full (read/write) API access (Pro plan).
+         */
+        post: operations["post_track_sale"];
         delete?: never;
         options?: never;
         head?: never;
@@ -275,7 +355,7 @@ export interface operations {
                 after?: string;
                 before?: string;
                 search?: string;
-                archived?: boolean;
+                archived?: string;
             };
             header?: never;
             path?: never;
@@ -478,15 +558,22 @@ export interface operations {
                     expiredUrl?: string;
                     /** @default false */
                     doIndex?: boolean;
+                    trackConversions?: boolean;
                     /** @default  */
                     password?: string;
                     /** @default  */
                     testVariants?: string;
                     /** @default  */
                     testCompletedAt?: string;
-                    /** @default  */
+                    /**
+                     * @description Device/geo redirect overrides. A JSON-encoded string (`JSON.stringify`d) matching `LinkTargeting` — or the plain object itself, which is JSON-encoded automatically. An empty string (the default) means no targeting. Requires the `targeting` plan capability.
+                     * @default
+                     */
                     targeting?: string;
-                    /** @default  */
+                    /**
+                     * @description Per-link QR code style override. A JSON-encoded string (`JSON.stringify`d) matching the QR settings shape — or the plain object itself, which is JSON-encoded automatically. An empty string (the default) inherits the account-level default. Requires the `qrCustomization` plan capability.
+                     * @default
+                     */
                     qrSettings?: string;
                 };
             };
@@ -968,6 +1055,8 @@ export interface operations {
                     expiredUrl?: string;
                     /** @default false */
                     doIndex?: boolean;
+                    /** @default false */
+                    trackConversions?: boolean;
                     /** @default  */
                     password?: string;
                     /** @default false */
@@ -976,9 +1065,15 @@ export interface operations {
                     testVariants?: string;
                     /** @default  */
                     testCompletedAt?: string;
-                    /** @default  */
+                    /**
+                     * @description Device/geo redirect overrides. A JSON-encoded string (`JSON.stringify`d) matching `LinkTargeting` — or the plain object itself, which is JSON-encoded automatically. An empty string (the default) means no targeting. Requires the `targeting` plan capability.
+                     * @default
+                     */
                     targeting?: string;
-                    /** @default  */
+                    /**
+                     * @description Per-link QR code style override. A JSON-encoded string (`JSON.stringify`d) matching the QR settings shape — or the plain object itself, which is JSON-encoded automatically. An empty string (the default) inherits the account-level default. Requires the `qrCustomization` plan capability.
+                     * @default
+                     */
                     qrSettings?: string;
                 };
             };
@@ -1413,7 +1508,7 @@ export interface operations {
             };
         };
     };
-    "post_links_bulk-archive": {
+    post_links_bulk_archive: {
         parameters: {
             query?: never;
             header?: never;
@@ -1531,7 +1626,7 @@ export interface operations {
             };
         };
     };
-    "post_links_bulk-restore": {
+    post_links_bulk_restore: {
         parameters: {
             query?: never;
             header?: never;
@@ -1649,7 +1744,7 @@ export interface operations {
             };
         };
     };
-    "post_links_bulk-move": {
+    post_links_bulk_move: {
         parameters: {
             query?: never;
             header?: never;
@@ -1768,7 +1863,7 @@ export interface operations {
             };
         };
     };
-    "post_links_bulk-tag": {
+    post_links_bulk_tag: {
         parameters: {
             query?: never;
             header?: never;
@@ -1912,8 +2007,11 @@ export interface operations {
                         data: {
                             id: string;
                             domain: string;
-                            /** @enum {string} */
-                            type: "USER_DOMAIN" | "APP_DOMAIN";
+                            /**
+                             * @description `USER_DOMAIN`/`APP_DOMAIN` are real rows in the `domains` table. `APP_DEFAULT` is synthesized: a domain `POST /links` would actually default to (no `domain` in the body) that doesn't have a row of its own yet — see the endpoint description.
+                             * @enum {string}
+                             */
+                            type: "USER_DOMAIN" | "APP_DOMAIN" | "APP_DEFAULT";
                             verified: boolean;
                             primary: boolean;
                             allowedHosts: string[];
@@ -2405,6 +2503,629 @@ export interface operations {
                 };
             };
             /** @description One of: validation_error. */
+            422: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "validation_error";
+                            /** @example The request did not pass validation. */
+                            message: string;
+                            issues?: {
+                                path: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description One of: rate_limited. */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "rate_limited";
+                            /** @example Rate limit exceeded for this API key. Check the Retry-After header. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    post_track_identify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    anonymousId: string;
+                    externalId: string;
+                    traits?: {
+                        /** Format: email */
+                        email?: string;
+                        name?: string;
+                        /** Format: uri */
+                        avatar?: string;
+                    } & {
+                        [key: string]: unknown;
+                    };
+                    clickId?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The resolved customer identity binding. */
+            200: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            customerId: string;
+                            anonymousId: string;
+                            externalId: string;
+                            merged: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description One of: unauthorized. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "unauthorized";
+                            /** @example Missing or invalid API key. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+            /** @description One of: forbidden, api_full_capability_required. */
+            403: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "forbidden";
+                            /** @example The API key does not have permission to perform this action. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+            /** @description One of: identity_conflict. */
+            409: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "identity_conflict";
+                            /** @example The supplied anonymous and external identities are already linked to different customers. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+            /** @description One of: validation_error. */
+            422: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "validation_error";
+                            /** @example The request did not pass validation. */
+                            message: string;
+                            issues?: {
+                                path: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description One of: rate_limited. */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "rate_limited";
+                            /** @example Rate limit exceeded for this API key. Check the Retry-After header. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    post_track_event: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    eventId: string;
+                    eventName: string;
+                    anonymousId: string;
+                    externalId?: string;
+                    clickId?: string;
+                    properties?: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: date-time */
+                    occurredAt?: string;
+                } | {
+                    eventId: string;
+                    eventName: string;
+                    anonymousId?: string;
+                    externalId: string;
+                    clickId?: string;
+                    properties?: {
+                        [key: string]: unknown;
+                    };
+                    /** Format: date-time */
+                    occurredAt?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The recorded or deduped generic event. */
+            200: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            eventId: string;
+                            customerId: string;
+                            deduped: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description One of: unauthorized. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "unauthorized";
+                            /** @example Missing or invalid API key. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+            /** @description One of: forbidden, api_full_capability_required. */
+            403: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "forbidden";
+                            /** @example The API key does not have permission to perform this action. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+            /** @description One of: identity_conflict. */
+            409: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "identity_conflict";
+                            /** @example The supplied anonymous and external identities are already linked to different customers. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+            /** @description One of: validation_error. */
+            422: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "validation_error";
+                            /** @example The request did not pass validation. */
+                            message: string;
+                            issues?: {
+                                path: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description One of: rate_limited. */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "rate_limited";
+                            /** @example Rate limit exceeded for this API key. Check the Retry-After header. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    post_track_lead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    clickId: string;
+                    eventName: string;
+                    customerExternalId: string;
+                    /** Format: email */
+                    customerEmail?: string;
+                    customerName?: string;
+                    /** Format: uri */
+                    customerAvatar?: string;
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description The recorded (or already-existing) lead event and its customer. */
+            200: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            event: {
+                                id: string;
+                                eventType: string;
+                                eventName: string;
+                                clickId: string | null;
+                                customerId: string;
+                                valueCents: number | null;
+                                currency: string | null;
+                                invoiceId: string | null;
+                                paymentProcessor: string | null;
+                                metadata: {
+                                    [key: string]: unknown;
+                                } | null;
+                                occurredAt: string;
+                                createdAt: string;
+                            };
+                            customer: {
+                                id: string;
+                                externalId: string;
+                                email: string | null;
+                                name: string | null;
+                                avatar: string | null;
+                                createdAt: string;
+                            };
+                            /** @description True when a matching event already existed (a re-reported lead `(customer, eventName)` or a replayed sale `invoiceId`) and this request recorded nothing new — the returned `event`/`customer` are the canonical pre-existing ones. The response is `200` either way. */
+                            deduped: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description One of: unauthorized. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "unauthorized";
+                            /** @example Missing or invalid API key. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+            /** @description One of: forbidden, api_full_capability_required. */
+            403: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "forbidden";
+                            /** @example The API key does not have permission to perform this action. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+            /** @description One of: validation_error. */
+            422: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "validation_error";
+                            /** @example The request did not pass validation. */
+                            message: string;
+                            issues?: {
+                                path: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description One of: rate_limited. */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before retrying (RFC 9110 §10.2.3). Only present on 429 responses. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "rate_limited";
+                            /** @example Rate limit exceeded for this API key. Check the Retry-After header. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    post_track_sale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    customerExternalId: string;
+                    amount: number;
+                    /** @default brl */
+                    currency?: string;
+                    /** @default Purchase */
+                    eventName?: string;
+                    paymentProcessor?: string;
+                    invoiceId?: string;
+                    clickId?: string;
+                    metadata?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description The recorded (or already-existing) sale event and its customer. */
+            200: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            event: {
+                                id: string;
+                                eventType: string;
+                                eventName: string;
+                                clickId: string | null;
+                                customerId: string;
+                                valueCents: number | null;
+                                currency: string | null;
+                                invoiceId: string | null;
+                                paymentProcessor: string | null;
+                                metadata: {
+                                    [key: string]: unknown;
+                                } | null;
+                                occurredAt: string;
+                                createdAt: string;
+                            };
+                            customer: {
+                                id: string;
+                                externalId: string;
+                                email: string | null;
+                                name: string | null;
+                                avatar: string | null;
+                                createdAt: string;
+                            };
+                            /** @description True when a matching event already existed (a re-reported lead `(customer, eventName)` or a replayed sale `invoiceId`) and this request recorded nothing new — the returned `event`/`customer` are the canonical pre-existing ones. The response is `200` either way. */
+                            deduped: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description One of: unauthorized. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "unauthorized";
+                            /** @example Missing or invalid API key. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+            /** @description One of: forbidden, api_full_capability_required. */
+            403: {
+                headers: {
+                    /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */
+                    "X-RateLimit-Limit"?: number;
+                    /** @description Requests remaining in the current window. */
+                    "X-RateLimit-Remaining"?: number;
+                    /** @description Unix timestamp, in seconds, when the current window resets. */
+                    "X-RateLimit-Reset"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @constant */
+                            code: "forbidden";
+                            /** @example The API key does not have permission to perform this action. */
+                            message: string;
+                        };
+                    };
+                };
+            };
+            /** @description One of: validation_error, customer_not_found. */
             422: {
                 headers: {
                     /** @description The API key's maximum requests per window. Omitted on responses sent before a key was resolved (401) or while the key is rate-limited (429). */

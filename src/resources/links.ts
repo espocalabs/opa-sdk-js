@@ -1,10 +1,11 @@
 import type { OpaHttpClient } from "../client.js";
 import { toResult } from "../errors.js";
 import type { paths } from "../generated/openapi.js";
+import type { LegacyPaths } from "../legacy-paths.js";
 import { createListPromise, type ListPromise } from "../pagination.js";
 import type { Page, RequestOptions, Result } from "../types.js";
 
-type Paths = paths;
+type Paths = paths & LegacyPaths;
 
 /** Full link detail — returned by `get`, `create`, `update`, `duplicate`. */
 export type Link =
@@ -14,7 +15,11 @@ export type Link =
 export type LinkSummary =
 	Paths["/links"]["get"]["responses"]["200"]["content"]["application/json"]["data"]["items"][number];
 
-export type ListLinksParams = NonNullable<Paths["/links"]["get"]["parameters"]["query"]>;
+type GeneratedListLinksParams = NonNullable<Paths["/links"]["get"]["parameters"]["query"]>;
+export type ListLinksParams = Omit<GeneratedListLinksParams, "archived"> & {
+	/** Both wire representations are accepted by API versions in the wild. */
+	archived?: boolean | string;
+};
 export type CreateLinkInput = Paths["/links"]["post"]["requestBody"]["content"]["application/json"];
 export type UpdateLinkInput =
 	Paths["/links/{id}"]["patch"]["requestBody"]["content"]["application/json"];
@@ -58,7 +63,12 @@ export class LinksResource {
 	}
 
 	private async fetchPage(params: ListLinksParams): Promise<Result<Page<LinkSummary>>> {
-		const result = await toResult(this.http.GET("/links", { params: { query: params } }));
+		const { archived, ...rest } = params;
+		const query: GeneratedListLinksParams = {
+			...rest,
+			...(archived === undefined ? {} : { archived: String(archived) }),
+		};
+		const result = await toResult(this.http.GET("/links", { params: { query } }));
 		if (result.error) return result;
 		return {
 			data: {

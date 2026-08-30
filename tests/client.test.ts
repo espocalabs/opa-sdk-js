@@ -3,6 +3,7 @@ import { createOpaClient, DEFAULT_BASE_URL } from "../src/client.js";
 import { AnalyticsResource } from "../src/resources/analytics.js";
 import { DomainsResource } from "../src/resources/domains.js";
 import { LinksResource } from "../src/resources/links.js";
+import { TrackResource } from "../src/resources/track.js";
 
 describe("createOpaClient", () => {
 	it("throws when apiKey is not provided", () => {
@@ -11,11 +12,12 @@ describe("createOpaClient", () => {
 		expect(() => createOpaClient({})).toThrow(/apiKey/);
 	});
 
-	it("wires up the links, analytics and domains resources", () => {
+	it("wires up the links, analytics, domains and track resources", () => {
 		const opa = createOpaClient({ apiKey: "opa_test_key" });
 		expect(opa.links).toBeInstanceOf(LinksResource);
 		expect(opa.analytics).toBeInstanceOf(AnalyticsResource);
 		expect(opa.domains).toBeInstanceOf(DomainsResource);
+		expect(opa.track).toBeInstanceOf(TrackResource);
 	});
 
 	it("defaults to https://api.opa.sh/v1", () => {
