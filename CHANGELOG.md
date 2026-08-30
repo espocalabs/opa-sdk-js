@@ -1,5 +1,12 @@
 # @opa.sh/sdk
 
+## 0.4.0
+
+### Minor Changes
+
+- 9050bd8: Add the stateless `opa.track` resource for anonymous identity reconciliation, idempotent product
+  events, leads, and sales.
+
 ## 0.3.0
 
 ### Minor Changes

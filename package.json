@@ -1,6 +1,6 @@
 {
   "name": "@opa.sh/sdk",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Official TypeScript/JavaScript SDK for the Opa link shortener API",
   "type": "module",
   "main": "./dist/index.cjs",
