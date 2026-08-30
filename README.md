@@ -243,7 +243,7 @@ Useful for Next.js `unstable_cache`, Cloudflare Workers with request-scoped `env
 
 ## TypeScript
 
-Types are generated from the live OpenAPI spec (`openapi/v1.json`) via [`openapi-typescript`](https://github.com/openapi-ts/openapi-typescript). The reserved tracking endpoints temporarily use an equivalent literal contract until the canonical spec publishes them. Autocomplete covers every path, method, body, query param, and response — a rename on the server surfaces as a compile error in the SDK.
+Types are generated from the canonical OpenAPI spec (`openapi/v1.json`) via [`openapi-typescript`](https://github.com/openapi-ts/openapi-typescript). Autocomplete covers every documented path, method, body, query param, and response.
 
 ```ts
 import type { OpaClient, OpaError, OpaErrorCode } from "@opa.sh/sdk";

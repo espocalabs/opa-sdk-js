@@ -25,7 +25,7 @@ export interface IdentifyResult {
 	merged: boolean;
 }
 
-export interface TrackEventInput {
+export type TrackEventInput = {
 	eventId: string;
 	eventName: string;
 	anonymousId?: string;
@@ -33,7 +33,7 @@ export interface TrackEventInput {
 	clickId?: string;
 	properties?: Record<string, unknown>;
 	occurredAt?: string;
-}
+} & ({ anonymousId: string; externalId?: string } | { anonymousId?: string; externalId: string });
 
 export interface TrackEventResult {
 	eventId: string;
@@ -90,44 +90,4 @@ export interface TrackConversionResult {
 	event: ConversionEvent;
 	customer: ConversionCustomer;
 	deduped: boolean;
-}
-
-type TrackingOperation<Input, Output> = {
-	parameters: {
-		query?: never;
-		header?: never;
-		path?: never;
-		cookie?: never;
-	};
-	requestBody: { content: { "application/json": Input } };
-	responses: {
-		200: {
-			headers: { [name: string]: unknown };
-			content: { "application/json": { data: Output } };
-		};
-	};
-};
-
-type PostOnlyPath<Operation> = {
-	parameters: {
-		query?: never;
-		header?: never;
-		path?: never;
-		cookie?: never;
-	};
-	get?: never;
-	put?: never;
-	post: Operation;
-	delete?: never;
-	options?: never;
-	head?: never;
-	patch?: never;
-	trace?: never;
-};
-
-export interface TrackingPaths {
-	"/track/identify": PostOnlyPath<TrackingOperation<IdentifyInput, IdentifyResult>>;
-	"/track/event": PostOnlyPath<TrackingOperation<TrackEventInput, TrackEventResult>>;
-	"/track/lead": PostOnlyPath<TrackingOperation<TrackLeadInput, TrackConversionResult>>;
-	"/track/sale": PostOnlyPath<TrackingOperation<TrackSaleInput, TrackConversionResult>>;
 }
