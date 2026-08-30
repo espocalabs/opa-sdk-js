@@ -1,6 +1,32 @@
 import { describe, expect, it } from "bun:test";
 import { createOpaClient } from "../src/client.js";
 
+const CONVERSION_RESULT = {
+	event: {
+		id: "cnv_1",
+		eventType: "lead",
+		eventName: "Signup",
+		clickId: "clk_1",
+		customerId: "cus_1",
+		valueCents: null,
+		currency: null,
+		invoiceId: null,
+		paymentProcessor: null,
+		metadata: { source: "form" },
+		occurredAt: "2026-08-30T12:00:00.000Z",
+		createdAt: "2026-08-30T12:00:00.000Z",
+	},
+	customer: {
+		id: "cus_1",
+		externalId: "user_1",
+		email: "person@example.com",
+		name: "Person",
+		avatar: null,
+		createdAt: "2026-08-30T12:00:00.000Z",
+	},
+	deduped: false,
+};
+
 describe("opa.track", () => {
 	it("identifies an anonymous visitor with the exact reserved wire contract", async () => {
 		let request: Request | undefined;
@@ -116,5 +142,87 @@ describe("opa.track", () => {
 			properties: { total: 14990 },
 			occurredAt: "2026-08-30T12:00:00.000Z",
 		});
+	});
+
+	it("tracks a lead with the legacy wire contract", async () => {
+		let request: Request | undefined;
+		const fetchStub = async (input: RequestInfo | URL) => {
+			request = input as Request;
+			return new Response(JSON.stringify({ data: CONVERSION_RESULT }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			});
+		};
+		const opa = createOpaClient({ apiKey: "opa_test", fetch: fetchStub, retry: false });
+
+		const result = await opa.track.lead({
+			clickId: "clk_1",
+			eventName: "Signup",
+			customerExternalId: "user_1",
+			customerEmail: "person@example.com",
+			customerName: "Person",
+			customerAvatar: "https://example.com/avatar.png",
+			metadata: { source: "form" },
+		});
+
+		expect(request?.url).toBe("https://api.opa.sh/v1/track/lead");
+		expect(await request?.json()).toEqual({
+			clickId: "clk_1",
+			eventName: "Signup",
+			customerExternalId: "user_1",
+			customerEmail: "person@example.com",
+			customerName: "Person",
+			customerAvatar: "https://example.com/avatar.png",
+			metadata: { source: "form" },
+		});
+		expect(result).toEqual({ data: CONVERSION_RESULT });
+	});
+
+	it("tracks an idempotent sale with the legacy wire contract", async () => {
+		let request: Request | undefined;
+		const saleResult = {
+			...CONVERSION_RESULT,
+			event: {
+				...CONVERSION_RESULT.event,
+				eventType: "sale",
+				eventName: "Purchase",
+				valueCents: 14990,
+				currency: "brl",
+				invoiceId: "inv_1",
+				paymentProcessor: "stripe",
+			},
+		};
+		const fetchStub = async (input: RequestInfo | URL) => {
+			request = input as Request;
+			return new Response(JSON.stringify({ data: saleResult }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			});
+		};
+		const opa = createOpaClient({ apiKey: "opa_test", fetch: fetchStub, retry: false });
+
+		const result = await opa.track.sale({
+			customerExternalId: "user_1",
+			amount: 14990,
+			currency: "BRL",
+			eventName: "Purchase",
+			paymentProcessor: "stripe",
+			invoiceId: "inv_1",
+			clickId: "clk_1",
+			metadata: { orderId: "ord_1" },
+		});
+
+		expect(request?.url).toBe("https://api.opa.sh/v1/track/sale");
+		expect(await request?.json()).toEqual({
+			customerExternalId: "user_1",
+			amount: 14990,
+			currency: "BRL",
+			eventName: "Purchase",
+			paymentProcessor: "stripe",
+			invoiceId: "inv_1",
+			clickId: "clk_1",
+			metadata: { orderId: "ord_1" },
+		});
+		expect(result).toEqual({ data: saleResult });
 	});
 });
