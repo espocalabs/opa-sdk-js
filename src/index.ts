@@ -33,6 +33,19 @@ export type {
 	UpdateLinkInput,
 } from "./resources/links.js";
 export { LinksResource } from "./resources/links.js";
+export { TrackResource } from "./resources/track.js";
 export type { RetryConfig } from "./retry.js";
 export { computeBackoffMs, createRetryFetch, parseRetryAfterMs } from "./retry.js";
+export type {
+	ConversionCustomer,
+	ConversionEvent,
+	IdentifyInput,
+	IdentifyResult,
+	IdentifyTraits,
+	TrackConversionResult,
+	TrackEventInput,
+	TrackEventResult,
+	TrackLeadInput,
+	TrackSaleInput,
+} from "./tracking-contract.js";
 export type { Page, RequestOptions, Result } from "./types.js";

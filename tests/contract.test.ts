@@ -8,6 +8,7 @@
  * runtime assertions underneath just prove the fixtures are non-trivial.
  */
 import { describe, expect, it } from "bun:test";
+import { type IdentifyInput, type TrackEventInput, TrackResource } from "../src/index.js";
 import type {
 	AnalyticsEvent,
 	AnalyticsQueryParams,
@@ -158,5 +159,21 @@ describe("resource types stay in sync with the OpenAPI spec", () => {
 			allowedHosts: ["opa.sh"],
 		} satisfies Domain;
 		expect(domain.type).toBe("APP_DOMAIN");
+	});
+
+	it("exports the stateless tracking resource and identity inputs", () => {
+		const identify = {
+			anonymousId: "anon_1",
+			externalId: "user_1",
+		} satisfies IdentifyInput;
+		const event = {
+			eventId: "evt_1",
+			eventName: "checkout_started",
+			externalId: "user_1",
+		} satisfies TrackEventInput;
+
+		expect(TrackResource).toBeFunction();
+		expect(identify.externalId).toBe("user_1");
+		expect(event.eventId).toBe("evt_1");
 	});
 });

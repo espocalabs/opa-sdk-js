@@ -134,6 +134,10 @@ describe("opa.track", () => {
 			occurredAt: "2026-08-30T12:00:00.000Z",
 		});
 
+		expect(await requests[0]?.json()).toEqual({
+			anonymousId: "anon_previous",
+			externalId: "user_previous",
+		});
 		expect(await requests[1]?.json()).toEqual({
 			eventId: "evt_2",
 			eventName: "purchase_completed",
